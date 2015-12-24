@@ -28,15 +28,27 @@ for two different style callback functions.
 LIBRARY API
 -----------
 Parsing INI File:
-int ParseIni(FILE *iniFile, parse_cb callback, void *userData)
+int ParseINI(const char *iniFile, parse_cb callback, void *userData)
 iniFile
-    The INI file stream to be parsed.  It must be opened.
-    NULL pointers will return an error.
+    The name (and path) of the INI file to be parsed.
 callback
     A pointer to the callback function to be called when a (section, key, value)
     triple is discovered.
 userData
     A pointer to data to be passed to the callback function
+Return Value
+    Zero for success, -1 for failure.  Error type is contained in errno.
+
+Writing INI File:
+int MakeINI(const char *iniFile, ini_entry_t *entries, const size_t count)
+iniFile
+    The name (and path) of the INI file to be created.  If the INI file
+    already exists, it will be overwritten.
+entries
+    A pointer to an array of ini_entry_t type elements that will be used to
+    create the INI file.
+count
+    The number of elements in the array pointed to by entries.
 Return Value
     Zero for success, -1 for failure.  Error type is contained in errno.
 
@@ -46,7 +58,8 @@ HISTORY
 
 TODO
 ----
-- Add functions for writing and to appending INI files
+- Add functions for updating existing INI files
+- Add option to MakeINI not to overwrite existing INI file
 
 AUTHOR
 ------

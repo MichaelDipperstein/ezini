@@ -49,6 +49,7 @@ typedef int (*parse_cb)(void *userData, const ini_entry_t entry);
 /***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
-int ParseIni(FILE *iniFile, parse_cb callback, void *userData);
+int ParseINI(const char *iniFile, parse_cb callback, void *userData);
+int MakeINI(const char *iniFile, ini_entry_t *entries, const size_t count);
 
 #endif  /* ndef EZINI_H */

@@ -46,38 +46,39 @@
 static char *SkipWS(const char *str);
 static char *DupStr(const char *src);
 static char *GetLine(FILE *fp);
+static int CompairEntry(const void *p1, const void *p2);
 
 /***************************************************************************
 *                                FUNCTIONS
 ***************************************************************************/
 
 /***************************************************************************
-*   Function   : ParseIni
+*   Function   : ParseINI
 *   Description: This function parses an INI file, searching for (section,
 *                key, value) triples passes their values to a callback
 *                function every time one is discovered.
-*   Parameters : iniFile - A pointer to an opened file stream to be parsed
+*   Parameters : iniFile - Name of the INI file to be parsed
 *                callback - A pointer to the callback function to be called
 *                           when a (section, key, value) triple is
 *                           discovered
 *                userData - A pointer to data to be passed to the callback
 *                           function
-*   Effects    : The provided file is parsed for (section, key, value)
+*   Effects    : The specified file is parsed for (section, key, value)
 *                triples until EOF is encountered or an error occurs.
-*                The file is left open either way.
 *   Returned   : 0 for success, Non-zero on error.  Error type is contained
 *                in errno.
 ***************************************************************************/
-int ParseIni(FILE *iniFile, parse_cb callback, void *userData)
+int ParseINI(const char *iniFile, parse_cb callback, void *userData)
 {
     char *line;
     char *ptr;
     ini_entry_t entry;
     int retval;
+    FILE* fp;
 
     if (NULL == iniFile)
     {
-        errno = ENOENT;
+        errno = EINVAL;
         return -1;
     }
 
@@ -87,13 +88,20 @@ int ParseIni(FILE *iniFile, parse_cb callback, void *userData)
         return -1;
     }
 
+    fp = fopen(iniFile, "r");
+
+    if (NULL == fp)
+    {
+        return -1;
+    }
+
     line = NULL;
     entry.section = NULL;
     entry.key = NULL;
     entry.value = NULL;
     retval = 0;
 
-    while ((line = GetLine(iniFile)) != NULL)
+    while ((line = GetLine(fp)) != NULL)
     {
         /* skip leading spaces and blank lines */
         ptr = SkipWS(line);
@@ -187,11 +195,73 @@ int ParseIni(FILE *iniFile, parse_cb callback, void *userData)
         free(line);
     }
 
-
 end:
+    fclose(fp);
     free(line);
     free(entry.section);
     return retval;
+}
+
+/***************************************************************************
+*   Function   : MakeINI
+*   Description: This function creates the specified INI file from the list
+*                of entries passed as an argument.  Any existing INI file
+*                with the same name in the same path will be overwritten.
+*   Parameters : iniFile - Name of the INI file to be created
+*                entries - A pointer to an array of ini_entry_t type
+*                          elements that will be used to create the INI file
+*                count - The number of elements in the array pointed to
+*                        by entries
+*   Effects    : The specified file is created and the (section, key, value)
+*                triples in the entries array are written to the file.  If
+*                the specified file already exists, it will be overwritten.
+*   Returned   : 0 for success, Non-zero on error.  Error type is contained
+*                in errno.
+***************************************************************************/
+int MakeINI(const char *iniFile, ini_entry_t *entries, const size_t count)
+{
+    char *section;
+    size_t i;
+    FILE *fp;
+
+    if (NULL == iniFile)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (NULL == entries)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    /* sort entries by section */
+    qsort((void *)entries, count, sizeof(ini_entry_t), CompairEntry);
+
+    fp = fopen(iniFile, "w");
+
+    if (NULL == fp)
+    {
+        return -1;
+    }
+
+    section = entries[0].section;
+    fprintf(fp, "[%s]\n", section);
+
+    for (i = 0; i < count; i++)
+    {
+        if (0 != strcmp(section, entries[i].section))
+        {
+            section = entries[i].section;
+            fprintf(fp, "\n[%s]\n", section);
+        }
+
+        fprintf(fp, "%s = %s\n", entries[i].key, entries[i].value);
+    }
+
+    fclose(fp);
+    return 0;
 }
 
 /***************************************************************************
@@ -307,3 +377,25 @@ static char *GetLine(FILE *fp)
     return line;
 }
 
+/***************************************************************************
+*   Function   : CompairEntry
+*   Description: This function compares the entries pointed to by the void
+*                pointers p1 and p2 and returns an integer less than, equal
+*                to, or greater than zero if p1 is less than, equal to or
+*                greater than p2.
+*   Parameters : str - string being copied
+*   Effects    : None
+*   Returned   : An integer less than, equal to, or greater than zero if
+*                p1.section is found, respectively, to be less than, to
+*                match, or be greater than p2.section.
+***************************************************************************/
+static int CompairEntry(const void *p1, const void *p2)
+{
+    char *s1;
+    char *s2;
+
+    s1 = ((ini_entry_t *)p1)->section;
+    s2 = ((ini_entry_t *)p2)->section;
+
+    return strcmp(s1, s2);
+}

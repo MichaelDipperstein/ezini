@@ -49,8 +49,8 @@ typedef struct my_struct_t
 /***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
-int MyCallback1(void *userData, const ini_entry_t entry);
-int MyCallback2(void *userData, const ini_entry_t entry);
+static int MyCallback1(void *userData, const ini_entry_t entry);
+static int MyCallback2(void *userData, const ini_entry_t entry);
 
 /***************************************************************************
 *                                FUNCTIONS
@@ -61,60 +61,76 @@ int MyCallback2(void *userData, const ini_entry_t entry);
 *   Description: This function calls ParseINI to parse the test_strs.ini
 *                file and uses MyCallback1 to fill a buffer with (section,
 *                key, value) triples that are found.  The buffer is then
-*                printed.  Then it calls ParseINI to parse the
-*                test_struct.ini file and uses MyCallback2 to populate an
-*                array of my_struct_t.  The contents of the populated struct
-*                array are printed.
+*                printed.  Then it creates test_struct.ini and calls
+*                ParseINI to parse it with and use MyCallback2 to populate
+*                an array of my_struct_t.  The contents of the populated
+*                struct array are printed.
 *   Parameters : argc - not used
 *                argc - not used
 *   Effects    : The (section, key, value) triples in test_strs.ini are
-*                printed and the contents of a populated my_struct_t two
-*                element array of my_struct_t are printed.
+*                printed.  test_struct.ini is created and it's enteries are
+*                used to populate my_struct_t, a two element array of
+*                my_struct_t.  Its contents are printed.
 *   Returned   : 0
 ***************************************************************************/
 int main(int argc, char *argv[])
 {
-    FILE *iniFile;
     char *buffer;
     my_struct_t my_structs[2];
     int i;
+
+    ini_entry_t entry[6];
 
     ((void)(argc));
     ((void)(argv));
     buffer = NULL;
 
-
     /* process ini file with string data using callback 1 */
-    iniFile = fopen("test_strs.ini", "r");
-
-    if (NULL == iniFile)
+    if (0 != ParseINI("test_strs.ini", &MyCallback1, (void *)&buffer))
     {
-        perror("Error opening test_strs.ini");
+        printf("Error parsing test_strs.ini file\n");
     }
 
-    if (0 != ParseIni(iniFile, &MyCallback1, (void *)&buffer))
-    {
-        printf("Error test_struct.ini file\n");
-    }
-
-    fclose(iniFile);
     printf("%s", buffer);
     free(buffer);
 
-    /* process ini file with struct data using callback 2 */
-    iniFile = fopen("test_struct.ini", "r");
+    /* build list of entries for MakeINI */
+    entry[0].section = "struct_1";
+    entry[0].key = "int_field";
+    entry[0].value = "123";
 
-    if (NULL == iniFile)
+    entry[1].section = "struct_2";
+    entry[1].key = "str_field";
+    entry[1].value = "string2";
+
+    entry[2].section = "struct_1";
+    entry[2].key = "float_field";
+    entry[2].value = "456.789";
+
+    entry[3].section = "struct_2";
+    entry[3].key = "float_field";
+    entry[3].value = "987.654";
+
+    entry[4].section = "struct_1";
+    entry[4].key = "str_field";
+    entry[4].value = "string1";
+
+    entry[5].section = "struct_2";
+    entry[5].key = "int_field";
+    entry[5].value = "321";
+
+    /* now create the ini */
+    if (0 != MakeINI("test_struct.ini", entry, 6))
     {
-        perror("Error opening test_struct.ini");
+        printf("Error making test_struct.ini file\n");
     }
 
-    if (0 != ParseIni(iniFile, &MyCallback2, (void *)my_structs))
+    /* process ini file with struct data using callback 2 */
+    if (0 != ParseINI("test_struct.ini", &MyCallback2, (void *)my_structs))
     {
         printf("Error parsing test_struct.ini file\n");
     }
 
-    fclose(iniFile);
     printf("\n");
 
     for (i = 0; i < 2; i++)
@@ -146,7 +162,7 @@ int main(int argc, char *argv[])
 *                are space delimited and followed by a '\n'.
 *   Returned   : 0 on success and -1 on failure.
 ***************************************************************************/
-int MyCallback1(void *userData, const ini_entry_t entry)
+static int MyCallback1(void *userData, const ini_entry_t entry)
 {
     size_t len;
     char *buffer;
@@ -197,7 +213,7 @@ int MyCallback1(void *userData, const ini_entry_t entry)
 *                my_struct_t type array passed as userData.
 *   Returned   : 0 on success and -1 on failure.
 ***************************************************************************/
-int MyCallback2(void *userData, const ini_entry_t entry)
+static int MyCallback2(void *userData, const ini_entry_t entry)
 {
     my_struct_t *ptr;
 
