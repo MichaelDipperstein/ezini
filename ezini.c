@@ -147,7 +147,7 @@ int ParseINI(const char *iniFile, parse_cb callback, void *userData)
         entry.key = ptr;
         ptr++;
 
-        while (*ptr != ' ' && *ptr !='\t' && *ptr != '=')
+        while (*ptr != '=')
         {
             if (*ptr == '\0')
             {
@@ -159,10 +159,21 @@ int ParseINI(const char *iniFile, parse_cb callback, void *userData)
             ptr++;
         }
 
-        *ptr = '\0';
-        ptr++;
+        /* we found the '=' separating key and value trim white space */
+        entry.value = ptr + 1;
+        ptr--;
+        
+        while (isspace(*ptr))
+        {
+            ptr--;
+        }
 
-        while (*ptr == ' ' || *ptr =='\t' || *ptr == '=')
+        *(ptr + 1) = '\0';
+
+        ptr = entry.value;
+
+        /* now skip white space after '=' */
+        while (*ptr == ' ' || *ptr =='\t')
         {
             if (*ptr == '\0')
             {

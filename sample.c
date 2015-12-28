@@ -95,28 +95,28 @@ int main(int argc, char *argv[])
     free(buffer);
 
     /* build list of entries for MakeINI */
-    entry[0].section = "struct_1";
-    entry[0].key = "int_field";
+    entry[0].section = "struct 1";
+    entry[0].key = "int field";
     entry[0].value = "123";
 
-    entry[1].section = "struct_2";
-    entry[1].key = "str_field";
+    entry[1].section = "struct 2";
+    entry[1].key = "str field";
     entry[1].value = "string2";
 
-    entry[2].section = "struct_1";
-    entry[2].key = "float_field";
+    entry[2].section = "struct 1";
+    entry[2].key = "float field";
     entry[2].value = "456.789";
 
-    entry[3].section = "struct_2";
-    entry[3].key = "float_field";
+    entry[3].section = "struct 2";
+    entry[3].key = "float field";
     entry[3].value = "987.654";
 
-    entry[4].section = "struct_1";
-    entry[4].key = "str_field";
+    entry[4].section = "struct 1";
+    entry[4].key = "str field";
     entry[4].value = "string1";
 
-    entry[5].section = "struct_2";
-    entry[5].key = "int_field";
+    entry[5].section = "struct 2";
+    entry[5].key = "int field";
     entry[5].value = "321";
 
     /* now create the ini */
@@ -217,8 +217,8 @@ static int MyCallback2(void *userData, const ini_entry_t entry)
 {
     my_struct_t *ptr;
 
-    /* use the XXX in struct_XXX section as index into userData */
-    if (strncmp("struct_", entry.section, 7) == 0)
+    /* use the XXX in struct XXX section as index into userData */
+    if (strncmp("struct ", entry.section, 7) == 0)
     {
         int offset;
 
@@ -237,15 +237,15 @@ static int MyCallback2(void *userData, const ini_entry_t entry)
         return -1;      /* unexpected section */
     }
 
-    if (strcmp("int_field", entry.key) == 0)
+    if (strcmp("int field", entry.key) == 0)
     {
         ptr->myInt = atoi(entry.value);
     }
-    else if (strcmp("float_field", entry.key) == 0)
+    else if (strcmp("float field", entry.key) == 0)
     {
         ptr->myFloat = atof(entry.value);
     }
-    else if (strcmp("str_field", entry.key) == 0)
+    else if (strcmp("str field", entry.key) == 0)
     {
         strncpy(ptr->myString, entry.value, 10);
     }
