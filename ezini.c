@@ -55,14 +55,16 @@ static int CompairEntry(const void *p1, const void *p2);
 /***************************************************************************
 *   Function   : ParseINI
 *   Description: This function parses an INI file, searching for (section,
-*                key, value) triples passes their values to a callback
+*                key, value) triples and pass their values to a callback
 *                function every time one is discovered.
 *   Parameters : iniFile - Name of the INI file to be parsed
 *                callback - A pointer to the callback function to be called
 *                           when a (section, key, value) triple is
 *                           discovered
-*                userData - A pointer to data to be passed to the callback
-*                           function
+*                userData - A pointer to data that is passed to the callback
+*                           function. The callback function will typically
+*                           use this in order to make results available to
+*                           the calling function.
 *   Effects    : The specified file is parsed for (section, key, value)
 *                triples until EOF is encountered or an error occurs.
 *   Returned   : 0 for success, Non-zero on error.  Error type is contained
