@@ -43,13 +43,14 @@ typedef struct
     char *value;
 } ini_entry_t;
 
-/* format of the callback called when INI entry is read */
-typedef int (*parse_cb)(void *userData, const ini_entry_t entry);
-
 /***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
-int ParseINI(const char *iniFile, parse_cb callback, void *userData);
-int MakeINI(const char *iniFile, ini_entry_t *entries, const size_t count);
+
+/* creates an INI file from an array of section, key, value, entries */
+int MakeINI(FILE *iniFile, ini_entry_t *entries, const size_t count);
+
+/* looks for next entry in INI file and returns 1 if found and 0 on error */
+int GetEntry(FILE *iniFile, ini_entry_t *entry);
 
 #endif  /* ndef EZINI_H */

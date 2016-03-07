@@ -43,6 +43,8 @@
 /***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
+static void FreeEntry(ini_entry_t *entry);
+
 static char *SkipWS(const char *str);
 static char *DupStr(const char *src);
 static char *GetLine(FILE *fp);
@@ -53,189 +55,26 @@ static int CompairEntry(const void *p1, const void *p2);
 ***************************************************************************/
 
 /***************************************************************************
-*   Function   : ParseINI
-*   Description: This function parses an INI file, searching for (section,
-*                key, value) triples and pass their values to a callback
-*                function every time one is discovered.
-*   Parameters : iniFile - Name of the INI file to be parsed
-*                callback - A pointer to the callback function to be called
-*                           when a (section, key, value) triple is
-*                           discovered
-*                userData - A pointer to data that is passed to the callback
-*                           function. The callback function will typically
-*                           use this in order to make results available to
-*                           the calling function.
-*   Effects    : The specified file is parsed for (section, key, value)
-*                triples until EOF is encountered or an error occurs.
-*   Returned   : 0 for success, Non-zero on error.  Error type is contained
-*                in errno.
-***************************************************************************/
-int ParseINI(const char *iniFile, parse_cb callback, void *userData)
-{
-    char *line;
-    char *ptr;
-    ini_entry_t entry;
-    int retval;
-    FILE* fp;
-
-    if (NULL == iniFile)
-    {
-        errno = EINVAL;
-        return -1;
-    }
-
-    if (NULL == callback)
-    {
-        errno = EINVAL;
-        return -1;
-    }
-
-    fp = fopen(iniFile, "r");
-
-    if (NULL == fp)
-    {
-        return -1;
-    }
-
-    line = NULL;
-    entry.section = NULL;
-    entry.key = NULL;
-    entry.value = NULL;
-    retval = 0;
-
-    while ((line = GetLine(fp)) != NULL)
-    {
-        /* skip leading spaces and blank lines */
-        ptr = SkipWS(line);
-
-        /* skip blank lines and lines starting with ';' or '#' */
-        if (*ptr == '\0' || *ptr == ';' || *ptr == '#')
-        {
-            free(line);
-            continue;
-        }
-
-        if (*ptr == '[')
-        {
-            /* possible new section */
-            char *end;
-
-            end = strchr(ptr, ']');
-
-            if (NULL == end)
-            {
-                retval = -1;
-                errno = EILSEQ;
-                goto end;
-            }
-
-            /* we have the full string for a new section, trim white space */
-            ptr = SkipWS(ptr + 1);
-
-            while (isspace(*(end - 1)))
-            {
-                end--;
-            }
-
-            *end = '\0';
-
-            free(entry.section);
-            entry.section = DupStr(ptr);
-            free(line);
-            continue;
-        }
-
-        /* the only other allowable lines are of the form key = value */
-        entry.key = ptr;
-        ptr++;
-
-        while (*ptr != '=')
-        {
-            if (*ptr == '\0')
-            {
-                retval = -1;
-                errno = EILSEQ;
-                goto end;
-            }
-
-            ptr++;
-        }
-
-        /* we found the '=' separating key and value trim white space */
-        entry.value = ptr + 1;
-        ptr--;
-        
-        while (isspace(*ptr))
-        {
-            ptr--;
-        }
-
-        *(ptr + 1) = '\0';
-
-        ptr = entry.value;
-
-        /* now skip white space after '=' */
-        while (*ptr == ' ' || *ptr =='\t')
-        {
-            if (*ptr == '\0')
-            {
-                retval = -1;
-                errno = EILSEQ;
-                goto end;
-            }
-
-            ptr++;
-        }
-
-        /* we found the start of value, trim trailing white space */
-        entry.value = ptr;
-        ptr = entry.value + strlen(entry.value) - 1;
-
-        while (isspace(*ptr))
-        {
-            ptr--;
-        }
-
-        *(ptr + 1) = '\0';
-        retval = callback(userData, entry);
-
-        if (retval != 0)
-        {
-            /* callback failed or indicated that we should stop */
-            goto end;
-        }
-
-        free(line);
-    }
-
-end:
-    fclose(fp);
-    free(line);
-    free(entry.section);
-    return retval;
-}
-
-/***************************************************************************
 *   Function   : MakeINI
 *   Description: This function creates the specified INI file from the list
-*                of entries passed as an argument.  Any existing INI file
-*                with the same name in the same path will be overwritten.
-*   Parameters : iniFile - Name of the INI file to be created
+*                of entries passed as an argument.  It will start from
+*                wherever the file is open to.
+*   Parameters : iniFile - A pointer to the INI file to be made.  The file
+*                          must be opened for writing.
 *                entries - A pointer to an array of ini_entry_t type
 *                          elements that will be used to create the INI file
 *                count - The number of elements in the array pointed to
 *                        by entries
 *   Effects    : The specified file is created and the (section, key, value)
-*                triples in the entries array are written to the file.  If
-*                the specified file already exists, it will be overwritten.
+*                triples in the entries array are written to the file.  It
+*                will start writing from the current location in the file.
 *   Returned   : 0 for success, Non-zero on error.  Error type is contained
 *                in errno.
 ***************************************************************************/
-int MakeINI(const char *iniFile, ini_entry_t *entries, const size_t count)
+int MakeINI(FILE *iniFile, ini_entry_t *entries, const size_t count)
 {
     char *section;
     size_t i;
-    FILE *fp;
 
     if (NULL == iniFile)
     {
@@ -252,30 +91,189 @@ int MakeINI(const char *iniFile, ini_entry_t *entries, const size_t count)
     /* sort entries by section */
     qsort((void *)entries, count, sizeof(ini_entry_t), CompairEntry);
 
-    fp = fopen(iniFile, "w");
-
-    if (NULL == fp)
-    {
-        return -1;
-    }
-
     section = entries[0].section;
-    fprintf(fp, "[%s]\n", section);
+    fprintf(iniFile, "[%s]\n", section);
 
     for (i = 0; i < count; i++)
     {
         if (0 != strcmp(section, entries[i].section))
         {
             section = entries[i].section;
-            fprintf(fp, "\n[%s]\n", section);
+            fprintf(iniFile, "\n[%s]\n", section);
         }
 
-        fprintf(fp, "%s = %s\n", entries[i].key, entries[i].value);
+        fprintf(iniFile, "%s = %s\n", entries[i].key, entries[i].value);
     }
 
-    fclose(fp);
     return 0;
 }
+
+/***************************************************************************
+*   Function   : GetEntry
+*   Description: This function parses an INI file stream passed as an input,
+*                searching for the next (section, key, value) triple.  The
+*                resulting triple will be used to populate the entry structure
+*                passed as a parameter.
+*   Parameters : iniFile - A pointer to the INI file to be parsed.  It must
+*                          be opened for reading.
+*                entry - A pointer to the entry structure used to store the
+*                        discovered (section, key, value) triple.
+*   Effects    : The specified file is read until it discovers a 
+*   Returned   : 1 when an entry is found
+*                0 when no more entries can be found
+*                -1 for an error.  Error type is contained in errno.
+***************************************************************************/
+int GetEntry(FILE *iniFile, ini_entry_t *entry)
+{
+    char *line;
+    char *ptr;
+
+    if (NULL == iniFile)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (NULL == entry)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    /* handle section names, comments, and blank lines */
+    while ((line = GetLine(iniFile)) != NULL)
+    {
+        /* skip leading spaces and blank lines */
+        ptr = SkipWS(line);
+
+        /* skip blank lines and lines starting with ';' or '#' */
+        if (*ptr == '\0' || *ptr == ';' || *ptr == '#')
+        {
+            free(line);
+            continue;
+        }
+        else if (*ptr == '[')
+        {
+            /* possible new section */
+            char *end;
+
+            end = strchr(ptr, ']');
+
+            if (NULL == end)
+            {
+                FreeEntry(entry);
+                errno = EILSEQ;
+                return -1;
+            }
+
+            /* we have the full string for a new section, trim white space */
+            ptr = SkipWS(ptr + 1);
+
+            while (isspace(*(end - 1)))
+            {
+                end--;
+            }
+
+            *end = '\0';
+
+            free(entry->section);
+            entry->section = DupStr(ptr);
+            free(line);
+        }
+        else
+        {
+            /* this line should be key = value */
+            break;
+        }
+    }
+
+    /* we either have a non-section line or nothing left to get */
+    if (NULL == line)
+    {
+        /* nothing left to get */
+        FreeEntry(entry);
+        return 0;
+    }
+
+    /* the only other allowable lines are of the form key = value */
+    entry->key = ptr;
+    ptr++;
+
+    while (*ptr != '=')
+    {
+        if (*ptr == '\0')
+        {
+            /* didn't find '=' */
+            entry->key = NULL;
+            FreeEntry(entry);
+            free(line);
+            errno = EILSEQ;
+            return -1;
+        }
+
+        ptr++;
+    }
+
+    /* we found the '=' separating key and value trim white space */
+    entry->value = ptr + 1;
+    ptr--;
+    
+    while (isspace(*ptr))
+    {
+        ptr--;
+    }
+
+    *(ptr + 1) = '\0';
+    entry->key = DupStr(entry->key);
+
+    ptr = entry->value;
+
+    /* now skip white space after '=' */
+    while (*ptr == ' ' || *ptr =='\t')
+    {
+        if (*ptr == '\0')
+        {
+            FreeEntry(entry);
+            free(line);
+            errno = EILSEQ;
+            return -1;
+        }
+
+        ptr++;
+    }
+
+    /* we found the start of value, trim trailing white space */
+    entry->value = ptr;
+    ptr = entry->value + strlen(entry->value) - 1;
+
+    while (isspace(*ptr))
+    {
+        ptr--;
+    }
+
+    *(ptr + 1) = '\0';
+    entry->value = DupStr(entry->value);
+
+    free(line);
+    return 1;
+}
+
+/***************************************************************************
+*   Function   : FreeEntry
+*   Description: This function frees the allocated memory that is pointed to
+*                by the members of an ini_entry_t structure.
+*   Parameters : entry - pointer to the entry structure containing the
+*                        members pointing to the memory to be freed.
+*   Effects    : Dynamically allocated memory is freed.
+*   Returned   : None
+***************************************************************************/
+static void FreeEntry(ini_entry_t *entry)
+{
+    free(entry->section);
+    free(entry->key);
+    free(entry->value);
+}
+
 
 /***************************************************************************
 *   Function   : SkipWS

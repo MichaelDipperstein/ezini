@@ -49,8 +49,7 @@ typedef struct my_struct_t
 /***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
-static int MyCallback1(void *userData, const ini_entry_t entry);
-static int MyCallback2(void *userData, const ini_entry_t entry);
+static int PopulateMyStruct(my_struct_t *my_struct, const ini_entry_t *entry);
 
 /***************************************************************************
 *                                FUNCTIONS
@@ -58,11 +57,10 @@ static int MyCallback2(void *userData, const ini_entry_t entry);
 
 /***************************************************************************
 *   Function   : main
-*   Description: This function calls ParseINI to parse the test_strs.ini
-*                file and uses MyCallback1 to fill a buffer with (section,
-*                key, value) triples that are found.  The buffer is then
-*                printed.  Then it creates test_struct.ini and calls
-*                ParseINI to parse it with and use MyCallback2 to populate
+*   Description: This function calls GetEntry to read the test_strs.ini
+*                file and prints the entries as they are discovered.  Then
+*                it creates test_struct.ini and calls GetEntry to read it.
+*                PopulateMyStruct is called to load the entry values into
 *                an array of my_struct_t.  The contents of the populated
 *                struct array are printed.
 *   Parameters : argc - not used
@@ -75,63 +73,101 @@ static int MyCallback2(void *userData, const ini_entry_t entry);
 ***************************************************************************/
 int main(int argc, char *argv[])
 {
-    char *buffer;
     my_struct_t my_structs[2];
     int i;
+    int result;
+    FILE *fp;
 
-    ini_entry_t entry[6];
+    ini_entry_t entries[6];
+    ini_entry_t entry;
 
     ((void)(argc));
     ((void)(argv));
-    buffer = NULL;
 
-    /* process ini file with string data using callback 1 */
-    if (0 != ParseINI("test_strs.ini", &MyCallback1, (void *)&buffer))
+    printf("Reading test_strs.ini\n");
+    printf("=====================\n");
+    fp = fopen("test_strs.ini", "r");
+
+    /* initialize entry structure before reading first entry */
+    entry.section = NULL;
+    entry.key = NULL;
+    entry.value = NULL;
+
+    /* read one entry at a time */
+    while ((result = GetEntry(fp, &entry)) > 0)
     {
-        printf("Error parsing test_strs.ini file\n");
+        printf("%s\n", entry.section);
+        printf("\t%s\n", entry.key);
+        printf("\t%s\n", entry.value);
     }
 
-    printf("%s", buffer);
-    free(buffer);
+    fclose(fp);
+
+    if (result < 0)
+    {
+        printf("Error getting entry from test_strs.ini\n");
+    }
 
     /* build list of entries for MakeINI */
-    entry[0].section = "struct 1";
-    entry[0].key = "int field";
-    entry[0].value = "123";
+    entries[0].section = "struct 1";
+    entries[0].key = "int field";
+    entries[0].value = "123";
 
-    entry[1].section = "struct 2";
-    entry[1].key = "str field";
-    entry[1].value = "string2";
+    entries[1].section = "struct 2";
+    entries[1].key = "str field";
+    entries[1].value = "string2";
 
-    entry[2].section = "struct 1";
-    entry[2].key = "float field";
-    entry[2].value = "456.789";
+    entries[2].section = "struct 1";
+    entries[2].key = "float field";
+    entries[2].value = "456.789";
 
-    entry[3].section = "struct 2";
-    entry[3].key = "float field";
-    entry[3].value = "987.654";
+    entries[3].section = "struct 2";
+    entries[3].key = "float field";
+    entries[3].value = "987.654";
 
-    entry[4].section = "struct 1";
-    entry[4].key = "str field";
-    entry[4].value = "string1";
+    entries[4].section = "struct 1";
+    entries[4].key = "str field";
+    entries[4].value = "string1";
 
-    entry[5].section = "struct 2";
-    entry[5].key = "int field";
-    entry[5].value = "321";
+    entries[5].section = "struct 2";
+    entries[5].key = "int field";
+    entries[5].value = "321";
+
+    printf("\nWriting test_struct.ini\n");
+    printf("=======================\n");
 
     /* now create the ini */
-    if (0 != MakeINI("test_struct.ini", entry, 6))
+    fp = fopen("test_struct.ini", "w");
+
+    if (0 != MakeINI(fp, entries, 6))
     {
         printf("Error making test_struct.ini file\n");
     }
 
-    /* process ini file with struct data using callback 2 */
-    if (0 != ParseINI("test_struct.ini", &MyCallback2, (void *)my_structs))
+    fclose(fp);
+
+
+    printf("\nReading test_struct.ini\n");
+    printf("=======================\n");
+    fp = fopen("test_struct.ini", "r");
+
+    /* initialize entry structure before reading first entry */
+    entry.section = NULL;
+    entry.key = NULL;
+    entry.value = NULL;
+
+    /* read ini file back into a structure */
+    while ((result = GetEntry(fp, &entry)) > 0)
     {
-        printf("Error parsing test_struct.ini file\n");
+        PopulateMyStruct(my_structs, &entry);
     }
 
-    printf("\n");
+    fclose(fp);
+
+    if (result < 0)
+    {
+        printf("Error getting entry from test_struct.ini\n");
+    }
 
     for (i = 0; i < 2; i++)
     {
@@ -144,85 +180,33 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-/***************************************************************************
-*   Function   : MyCallback1
-*   Description: This is a callback function for ParseINI.  It stores all
-*                of the section, key, value entries into one giant
-*                dynamically allocated array of char pointed to by userData.
-*                The function that called ParseINI is responsible for
-*                freeing userData when it is done with it.
-*   Parameters : userData - A pointer to the pointer to the array of char
-*                           that will contain all of the section, key, value
-*                           entries
-*                entry - The section, key, value strings discovered by
-*                        ParseINI
-*   Effects    : The (section, key, value) strings are concatenated to the
-*                dynamically allocated array pointed to by *userData.  The
-*                array is grown to accommodate size of the strings, which
-*                are space delimited and followed by a '\n'.
-*   Returned   : 0 on success and -1 on failure.
-***************************************************************************/
-static int MyCallback1(void *userData, const ini_entry_t entry)
-{
-    size_t len;
-    char *buffer;
-
-    buffer = *((char **)userData);
-    len = strlen(entry.section) + strlen(entry.key) + strlen(entry.value) + 3;
-
-    if (NULL == buffer)
-    {
-        buffer = malloc(len * sizeof(char) + 1);
-    }
-    else
-    {
-        len += strlen(*((char **)userData)) + 1;
-        buffer = realloc(buffer, len * sizeof(char));
-    }
-
-    if (NULL == buffer)
-    {
-        *((char **)userData) = buffer;
-        return -1;
-    }
-
-    strcat(buffer, entry.section);
-    strcat(buffer, " ");
-    strcat(buffer, entry.key);
-    strcat(buffer, " ");
-    strcat(buffer, entry.value);
-    strcat(buffer, "\n");
-
-    *((char **)userData) = buffer;
-    return 0;
-}
 
 /***************************************************************************
-*   Function   : MyCallback2
-*   Description: This is a callback function for ParseINI.  It stores
-*                section, key, value entries into an array of my_struct_t.
-*                The section number is used as the array index.  key is the
-*                name of struct the field that the value is to be stored in.
-*                Values are converted to the correct type based on the type
-*                of the field that they are stored into.
-*   Parameters : userData - A pointer to the pointer to the array of
-*                           my_struct_t that entries will be store into.
+*   Function   : PopulateMyStruct
+*   Description: This function stores section, key, value entries into an
+*                array of my_struct_t.  The section number is used as the
+*                array index.  key is the name of struct the field that the
+*                value is to be stored in.  Values are converted to the
+*                correct type based on the type of the field that they are
+*                stored into.
+*   Parameters : my_struct - A pointer to the array of my_struct_t that
+*                            entries will be stored into.
 *                entry - The section, key, value strings discovered by
-*                        ParseINI
+*                        GetEntry.
 *   Effects    : The (section, key, value) strings are used to fill the
-*                my_struct_t type array passed as userData.
+*                my_struct_t type array passed as my_struct.
 *   Returned   : 0 on success and -1 on failure.
 ***************************************************************************/
-static int MyCallback2(void *userData, const ini_entry_t entry)
+static int PopulateMyStruct(my_struct_t *my_struct, const ini_entry_t *entry)
 {
     my_struct_t *ptr;
 
-    /* use the XXX in struct XXX section as index into userData */
-    if (strncmp("struct ", entry.section, 7) == 0)
+    /* use the XXX in struct XXX section as index into my_struct */
+    if (strncmp("struct ", entry->section, 7) == 0)
     {
         int offset;
 
-        offset = atoi(entry.section + 7);
+        offset = atoi(entry->section + 7);
 
         if (offset < 1)
         {
@@ -230,24 +214,24 @@ static int MyCallback2(void *userData, const ini_entry_t entry)
         }
 
         offset--;
-        ptr = ((my_struct_t *)userData) + offset;
+        ptr = my_struct + offset;
     }
     else
     {
         return -1;      /* unexpected section */
     }
 
-    if (strcmp("int field", entry.key) == 0)
+    if (strcmp("int field", entry->key) == 0)
     {
-        ptr->myInt = atoi(entry.value);
+        ptr->myInt = atoi(entry->value);
     }
-    else if (strcmp("float field", entry.key) == 0)
+    else if (strcmp("float field", entry->key) == 0)
     {
-        ptr->myFloat = atof(entry.value);
+        ptr->myFloat = atof(entry->value);
     }
-    else if (strcmp("str field", entry.key) == 0)
+    else if (strcmp("str field", entry->key) == 0)
     {
-        strncpy(ptr->myString, entry.value, 10);
+        strncpy(ptr->myString, entry->value, 10);
     }
     else
     {

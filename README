@@ -27,34 +27,38 @@ for two different style callback functions.
 
 LIBRARY API
 -----------
-Parsing INI File:
-int ParseINI(const char *iniFile, parse_cb callback, void *userData)
-iniFile
-    The name (and path) of the INI file to be parsed.
-callback
-    A pointer to the callback function to be called when a (section, key, value)
-    triple is discovered.
-userData
-    A pointer to data to be passed to the callback function
-Return Value
-    Zero for success, -1 for failure.  Error type is contained in errno.
-
 Writing INI File:
 int MakeINI(const char *iniFile, ini_entry_t *entries, const size_t count)
 iniFile
-    The name (and path) of the INI file to be created.  If the INI file
-    already exists, it will be overwritten.
+    A pointer to the INI file to be made.  The file must be opened for writing.
 entries
     A pointer to an array of ini_entry_t type elements that will be used to
     create the INI file.
 count
     The number of elements in the array pointed to by entries.
 Return Value
-    Zero for success, -1 for failure.  Error type is contained in errno.
+    0 for success
+    -1 for failure.  Error type is contained in errno.
+
+Getting INI File Entries:
+int GetEntry(FILE *iniFile, ini_entry_t *entry)
+iniFile
+    A pointer to the INI file to be parsed.  The file must be opened for
+    reading.
+entry
+    A pointer to the entry structure used to store the discovered
+    (section, key, value) triple.
+Return Value
+    1 for success
+    0 if no triples were discovered
+    -1 for failure.  Error type is contained in errno.
 
 HISTORY
 -------
 12/20/15 - Initial release
+03/06/16 - Changed function that gets INI entries to be more like getopt
+           instead of using callback functions
+         - Use open FILE pointer instead of full path to INI file
 
 TODO
 ----
