@@ -35,7 +35,7 @@
 *                            TYPE DEFINITIONS
 ***************************************************************************/
 
-/*section, key, and value of INI file entry */
+/* section, key, and value of INI file entry */
 typedef struct
 {
     char *section;
@@ -43,14 +43,37 @@ typedef struct
     char *value;
 } ini_entry_t;
 
+/* structure for sorted list of entries */
+typedef struct ini_entry_list_t
+{
+    ini_entry_t entry;
+    struct ini_entry_list_t *next;
+} ini_entry_list_t;
+
 /***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
 
-/* creates an INI file from an array of section, key, value, entries */
-int MakeINI(FILE *iniFile, ini_entry_t *entries, const size_t count);
+/* add entry to a sorted entry list */
+int ListAddEntry(ini_entry_list_t **list, const char *section, const char *key,
+    const char *value);
 
-/* looks for next entry in INI file and returns 1 if found and 0 on error */
-int GetEntry(FILE *iniFile, ini_entry_t *entry);
+/* frees an entry list */
+void ListFreeEntries(ini_entry_list_t **list);
+
+/* create/add entries to an INI file from a sorted entry list */
+int FileMakeINI(const char *iniFile, const ini_entry_list_t *list);
+int FileAddEntry(const char *iniFile, const ini_entry_list_t *list);
+
+/* remove a single entry from an INI file */
+int FileDeleteEntry(const char *iniFile, const char *section, const char *key);
+
+/***************************************************************************
+* get the next entry in INI file.
+* returns:  1 if an entry is found
+*           0 if there are no more entries
+*           -1 on error
+***************************************************************************/
+int FileGetEntry(FILE *iniFile, ini_entry_t *entry);
 
 #endif  /* ndef EZINI_H */

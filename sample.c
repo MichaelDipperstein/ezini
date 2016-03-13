@@ -57,18 +57,16 @@ static int PopulateMyStruct(my_struct_t *my_struct, const ini_entry_t *entry);
 
 /***************************************************************************
 *   Function   : main
-*   Description: This function calls GetEntry to read the test_strs.ini
-*                file and prints the entries as they are discovered.  Then
-*                it creates test_struct.ini and calls GetEntry to read it.
-*                PopulateMyStruct is called to load the entry values into
-*                an array of my_struct_t.  The contents of the populated
-*                struct array are printed.
+*   Description: This creates test_struct.ini and calls FileGetEntry to
+*                read it.  PopulateMyStruct is called to load the entry
+*                values into an array of my_struct_t.  The contents of
+*                the populated struct array are printed.
 *   Parameters : argc - not used
 *                argc - not used
-*   Effects    : The (section, key, value) triples in test_strs.ini are
-*                printed.  test_struct.ini is created and it's enteries are
+*   Effects    : test_struct.ini is created and it's enteries are
 *                used to populate my_struct_t, a two element array of
-*                my_struct_t.  Its contents are printed.
+*                my_struct_t.  Its contents are printed and test_struct.ini
+*                is deleted.
 *   Returned   : 0
 ***************************************************************************/
 int main(int argc, char *argv[])
@@ -78,74 +76,31 @@ int main(int argc, char *argv[])
     int result;
     FILE *fp;
 
-    ini_entry_t entries[6];
     ini_entry_t entry;
+    ini_entry_list_t *list;
 
     ((void)(argc));
     ((void)(argv));
 
-    printf("Reading test_strs.ini\n");
-    printf("=====================\n");
-    fp = fopen("test_strs.ini", "r");
-
-    /* initialize entry structure before reading first entry */
-    entry.section = NULL;
-    entry.key = NULL;
-    entry.value = NULL;
-
-    /* read one entry at a time */
-    while ((result = GetEntry(fp, &entry)) > 0)
-    {
-        printf("%s\n", entry.section);
-        printf("\t%s\n", entry.key);
-        printf("\t%s\n", entry.value);
-    }
-
-    fclose(fp);
-
-    if (result < 0)
-    {
-        printf("Error getting entry from test_strs.ini\n");
-    }
-
     /* build list of entries for MakeINI */
-    entries[0].section = "struct 1";
-    entries[0].key = "int field";
-    entries[0].value = "123";
-
-    entries[1].section = "struct 2";
-    entries[1].key = "str field";
-    entries[1].value = "string2";
-
-    entries[2].section = "struct 1";
-    entries[2].key = "float field";
-    entries[2].value = "456.789";
-
-    entries[3].section = "struct 2";
-    entries[3].key = "float field";
-    entries[3].value = "987.654";
-
-    entries[4].section = "struct 1";
-    entries[4].key = "str field";
-    entries[4].value = "string1";
-
-    entries[5].section = "struct 2";
-    entries[5].key = "int field";
-    entries[5].value = "321";
+    list = NULL;
+    ListAddEntry(&list, "struct 1", "int field", "123");
+    ListAddEntry(&list, "struct 2", "str field", "string2");
+    ListAddEntry(&list, "struct 1", "float field", "456.789");
+    ListAddEntry(&list, "struct 2", "float field", "987.654");
+    ListAddEntry(&list, "struct 1", "str field", "string1");
+    ListAddEntry(&list, "struct 2", "int field", "321");
 
     printf("\nWriting test_struct.ini\n");
     printf("=======================\n");
 
     /* now create the ini */
-    fp = fopen("test_struct.ini", "w");
-
-    if (0 != MakeINI(fp, entries, 6))
+    if (0 != FileMakeINI("test_struct.ini", list))
     {
         printf("Error making test_struct.ini file\n");
     }
 
-    fclose(fp);
-
+    ListFreeEntries(&list);
 
     printf("\nReading test_struct.ini\n");
     printf("=======================\n");
@@ -157,7 +112,7 @@ int main(int argc, char *argv[])
     entry.value = NULL;
 
     /* read ini file back into a structure */
-    while ((result = GetEntry(fp, &entry)) > 0)
+    while ((result = FileGetEntry(fp, &entry)) > 0)
     {
         PopulateMyStruct(my_structs, &entry);
     }
@@ -177,9 +132,53 @@ int main(int argc, char *argv[])
         printf("\tmyString %s\n", my_structs[i].myString);
     }
 
+    printf("\nModifying test_struct.ini\n");
+    printf("=======================\n");
+
+    if (0 != FileDeleteEntry("test_struct.ini", "struct 1", "int field"))
+    {
+        printf("Error deleting entry from test_struct.ini file\n");
+    }
+
+    list = NULL;
+    ListAddEntry(&list, "struct 1", "int field", "1234");
+    ListAddEntry(&list, "struct 2", "str field", "string2A");
+    ListAddEntry(&list, "struct 1", "float field", "456.7890");
+    ListAddEntry(&list, "struct 2", "float field", "987.6543");
+    ListAddEntry(&list, "struct 1", "str field", "string1A");
+    ListAddEntry(&list, "struct 2", "int field", "3210");
+
+    if (0 != FileAddEntry("test_struct.ini", list))
+    {
+        printf("Error deleting entry from test_struct.ini file\n");
+    }
+
+    fp = fopen("test_struct.ini", "r");
+
+    /* read ini file back into a structure */
+    while ((result = FileGetEntry(fp, &entry)) > 0)
+    {
+        PopulateMyStruct(my_structs, &entry);
+    }
+
+    fclose(fp);
+
+    if (result < 0)
+    {
+        printf("Error getting entry from test_struct.ini\n");
+    }
+
+    for (i = 0; i < 2; i++)
+    {
+        printf("struct %d\n", (i + 1));
+        printf("\tmyInt %d\n", my_structs[i].myInt);
+        printf("\tmyFloat %f\n", my_structs[i].myFloat);
+        printf("\tmyString %s\n", my_structs[i].myString);
+    }
+
+    remove("test_struct.ini");
     return 0;
 }
-
 
 /***************************************************************************
 *   Function   : PopulateMyStruct

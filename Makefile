@@ -19,7 +19,9 @@ else	#assume Linux/Unix
 	DEL = rm -f
 endif
 
-all:		sample$(EXE)
+TARGET = sample$(EXE) strtest$(EXE)
+
+all:		$(TARGET)
 
 sample$(EXE):	sample.o ezini.o
 		$(LD) $^ $(LDFLAGS) $@
@@ -27,9 +29,15 @@ sample$(EXE):	sample.o ezini.o
 sample.o:		sample.c ezini.h
 		$(CC) $(CFLAGS) $<
 
+strtest$(EXE):	strtest.o ezini.o
+		$(LD) $^ $(LDFLAGS) $@
+
+strtest.o:		strtest.c ezini.h
+		$(CC) $(CFLAGS) $<
+
 ezini.o:	ezini.c ezini.h
 		$(CC) $(CFLAGS) $<
 
 clean:
 		$(DEL) *.o
-		$(DEL) sample$(EXE)
+		$(DEL) $(TARGET)

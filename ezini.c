@@ -48,33 +48,146 @@ static void FreeEntry(ini_entry_t *entry);
 static char *SkipWS(const char *str);
 static char *DupStr(const char *src);
 static char *GetLine(FILE *fp);
+
 static int CompairEntry(const void *p1, const void *p2);
+
+static int PopulateEntry(ini_entry_t *entry, const char *section,
+    const char *key, const char *value);
 
 /***************************************************************************
 *                                FUNCTIONS
 ***************************************************************************/
 
+int ListAddEntry(ini_entry_list_t **list, const char *section, const char *key,
+    const char *value)
+{
+    ini_entry_list_t *here;
+    ini_entry_list_t *prev;
+    ini_entry_list_t *tmp;
+    ini_entry_t entry;
+    int result;
+
+    /* handle empty list */
+    if (NULL == *list)
+    {
+        *list = (ini_entry_list_t *)malloc(sizeof(ini_entry_list_t));
+
+        if (NULL == *list)
+        {
+            return -1;
+        }
+
+        /* copy triple into entry */
+        if (0 != PopulateEntry(&((*list)->entry), section, key, value))
+        {
+            return -1;
+        }
+
+        (*list)->next = NULL;
+
+        return 0;
+    }
+
+    /* make entry to be inserted.  it's easier to work with. */
+    if (0 != PopulateEntry(&entry, section, key, value))
+    {
+        return -1;
+    }
+
+
+    /* find where to insert entry into non-empty list */
+    here = *list;
+    prev = NULL;
+
+    while (NULL != here)
+    {
+        result = CompairEntry(&entry, &(here->entry));
+
+        if (result <= 0)
+        {
+            break;
+        }
+
+        prev = here;
+        here = here->next;
+    }
+
+    /* we found where we need to insert the entry */
+    if (0 == result)
+    {
+        /* section and key match, just replace the value */
+        free(here->entry.value);
+        here->entry.value = DupStr(value);
+        return 0;
+    }
+
+   tmp = (ini_entry_list_t *)malloc(sizeof(ini_entry_list_t));
+
+    if (NULL == tmp)
+    {
+        FreeEntry(&entry);
+        return -1;
+    }
+
+    tmp->entry.section = entry.section;
+    tmp->entry.key = entry.key;
+    tmp->entry.value = entry.value;
+    tmp->next = here;
+
+    if (NULL == prev)
+    {
+        /* insert at the head of the list */
+        *list = tmp;
+    }
+    else
+    {
+        prev->next = tmp;
+    }
+
+    return 0;
+}
+
+void ListFreeEntries(ini_entry_list_t **list)
+{
+    ini_entry_list_t *here;
+    ini_entry_list_t *next;
+
+    if (NULL == *list)
+    {
+        return;
+    }
+
+    here = *list;
+
+    /* delete list head to tail */
+    do
+    {
+        next = here->next;
+        FreeEntry(&(here->entry));
+        free(here);
+        here = next;
+    } while (here != NULL);
+}
+
 /***************************************************************************
-*   Function   : MakeINI
+*   Function   : FileMakeINI
 *   Description: This function creates the specified INI file from the list
-*                of entries passed as an argument.  It will start from
-*                wherever the file is open to.
-*   Parameters : iniFile - A pointer to the INI file to be made.  The file
-*                          must be opened for writing.
-*                entries - A pointer to an array of ini_entry_t type
-*                          elements that will be used to create the INI file
-*                count - The number of elements in the array pointed to
-*                        by entries
+*                of entries passed as an argument.  Any existing INI file
+*                with the same name in the same path will be overwritten.
+*   Parameters : iniFile - The name of the INI file to be created
+*                list - A pointer to a sorted list of enteries.
 *   Effects    : The specified file is created and the (section, key, value)
-*                triples in the entries array are written to the file.  It
-*                will start writing from the current location in the file.
+*                triples in the entry list are written to the file.  If
+*                the specified file already exists, it will be overwritten.
+*                If the entry list is not sorted, multiple sections with
+*                the same name may be created.
 *   Returned   : 0 for success, Non-zero on error.  Error type is contained
 *                in errno.
 ***************************************************************************/
-int MakeINI(FILE *iniFile, ini_entry_t *entries, const size_t count)
+int FileMakeINI(const char *iniFile, const ini_entry_list_t *list)
 {
     char *section;
-    size_t i;
+    FILE *fp;
 
     if (NULL == iniFile)
     {
@@ -82,34 +195,177 @@ int MakeINI(FILE *iniFile, ini_entry_t *entries, const size_t count)
         return -1;
     }
 
-    if (NULL == entries)
+    if (NULL == list)
     {
         errno = EINVAL;
         return -1;
     }
 
-    /* sort entries by section */
-    qsort((void *)entries, count, sizeof(ini_entry_t), CompairEntry);
+    fp = fopen(iniFile, "w");
 
-    section = entries[0].section;
-    fprintf(iniFile, "[%s]\n", section);
-
-    for (i = 0; i < count; i++)
+    if (NULL == fp)
     {
-        if (0 != strcmp(section, entries[i].section))
-        {
-            section = entries[i].section;
-            fprintf(iniFile, "\n[%s]\n", section);
-        }
-
-        fprintf(iniFile, "%s = %s\n", entries[i].key, entries[i].value);
+        return -1;
     }
 
+    section = list->entry.section;
+    fprintf(fp, "[%s]\n", section);
+
+    while (NULL != list)
+    {
+        if (0 != strcmp(section, list->entry.section))
+        {
+            section = list->entry.section;
+            fprintf(fp, "\n[%s]\n", section);
+        }
+
+        fprintf(fp, "%s = %s\n", list->entry.key, list->entry.value);
+
+        list = list->next;
+    }
+
+    fclose(fp);
     return 0;
 }
 
+int FileAddEntry(const char *iniFile, const ini_entry_list_t *list)
+{
+    ini_entry_t entry;
+    ini_entry_list_t *merged;
+    const ini_entry_list_t *here;
+    int result;
+    FILE *fp;
+
+    if (NULL == iniFile)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (NULL == list)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    fp = fopen(iniFile, "r");
+
+    if (NULL == fp)
+    {
+        return -1;
+    }
+
+    merged = NULL;
+    entry.section = NULL;
+    entry.key = NULL;
+    entry.value = NULL;
+
+    /* read ini file back into an entry list */
+    while ((result = FileGetEntry(fp, &entry)) > 0)
+    {
+        ListAddEntry(&merged, entry.section, entry.key, entry.value);
+    }
+
+    if (result < 0)
+    {
+        fclose(fp);
+        ListFreeEntries(&merged);
+        return -1;
+    }
+
+    /* add entries passed into this function */
+    here = list;
+
+    while (NULL != here)
+    {
+        result = ListAddEntry(&merged, here->entry.section, here->entry.key,
+            here->entry.value);
+
+        if (result != 0)
+        {
+            fclose(fp);
+            ListFreeEntries(&merged);
+            return -1;
+        }
+
+        here = here->next;
+    }
+
+    fclose(fp);
+    result = FileMakeINI(iniFile, merged);
+    ListFreeEntries(&merged);
+
+    return result;
+}
+
+int FileDeleteEntry(const char *iniFile, const char *section, const char *key)
+{
+    ini_entry_t entry;
+    ini_entry_list_t *list;
+    int result;
+    FILE *fp;
+
+    if (NULL == iniFile)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (NULL == section)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    if (NULL == key)
+    {
+        errno = EINVAL;
+        return -1;
+    }
+
+    fp = fopen(iniFile, "r");
+
+    if (NULL == fp)
+    {
+        return -1;
+    }
+
+    list = NULL;
+    entry.section = NULL;
+    entry.key = NULL;
+    entry.value = NULL;
+
+    /* read ini file back into a structure */
+    while ((result = FileGetEntry(fp, &entry)) > 0)
+    {
+        if (0 != strcmp(entry.section, section))
+        {
+            /* this isn't one we're supposed to delete */
+            ListAddEntry(&list, entry.section, entry.key, entry.value);
+        }
+        else if (0 != strcmp(entry.key, key))
+        {
+            /* this isn't one we're supposed to delete */
+            ListAddEntry(&list, entry.section, entry.key, entry.value);
+        }
+    }
+
+    fclose(fp);
+
+    if (result < 0)
+    {
+        ListFreeEntries(&list);
+        return -1;
+    }
+
+    result = FileMakeINI(iniFile, list);
+    ListFreeEntries(&list);
+
+    return result;
+}
+
 /***************************************************************************
-*   Function   : GetEntry
+*   Function   : FileGetEntry
 *   Description: This function parses an INI file stream passed as an input,
 *                searching for the next (section, key, value) triple.  The
 *                resulting triple will be used to populate the entry structure
@@ -118,12 +374,12 @@ int MakeINI(FILE *iniFile, ini_entry_t *entries, const size_t count)
 *                          be opened for reading.
 *                entry - A pointer to the entry structure used to store the
 *                        discovered (section, key, value) triple.
-*   Effects    : The specified file is read until it discovers a 
+*   Effects    : The specified file is read until it discovers a
 *   Returned   : 1 when an entry is found
 *                0 when no more entries can be found
 *                -1 for an error.  Error type is contained in errno.
 ***************************************************************************/
-int GetEntry(FILE *iniFile, ini_entry_t *entry)
+int FileGetEntry(FILE *iniFile, ini_entry_t *entry)
 {
     char *line;
     char *ptr;
@@ -217,7 +473,7 @@ int GetEntry(FILE *iniFile, ini_entry_t *entry)
     /* we found the '=' separating key and value trim white space */
     entry->value = ptr + 1;
     ptr--;
-    
+
     while (isspace(*ptr))
     {
         ptr--;
@@ -272,6 +528,10 @@ static void FreeEntry(ini_entry_t *entry)
     free(entry->section);
     free(entry->key);
     free(entry->value);
+
+    entry->section = NULL;
+    entry->key = NULL;
+    entry->value = NULL;
 }
 
 
@@ -394,19 +654,69 @@ static char *GetLine(FILE *fp)
 *                pointers p1 and p2 and returns an integer less than, equal
 *                to, or greater than zero if p1 is less than, equal to or
 *                greater than p2.
-*   Parameters : str - string being copied
+*   Parameters : p1 - A pointer to the first entry
+*                p2 - A pointer to the second entry
 *   Effects    : None
 *   Returned   : An integer less than, equal to, or greater than zero if
-*                p1.section is found, respectively, to be less than, to
-*                match, or be greater than p2.section.
+*                p1 is found, respectively, to be less than, to match, or be
+*                greater than p2.
+*
+*                NOTE: Entries are compared by section, if the sections are
+*                equal, their keys are compared.  Their values are never
+*                compared.
 ***************************************************************************/
 static int CompairEntry(const void *p1, const void *p2)
 {
     char *s1;
     char *s2;
+    int result;
 
     s1 = ((ini_entry_t *)p1)->section;
     s2 = ((ini_entry_t *)p2)->section;
+    result = strcmp(s1, s2);
 
-    return strcmp(s1, s2);
+    if (0 != result)
+    {
+        return result;
+    }
+
+    s1 = ((ini_entry_t *)p1)->key;
+    s2 = ((ini_entry_t *)p2)->key;
+    result = strcmp(s1, s2);
+    return result;
+}
+
+static int PopulateEntry(ini_entry_t *entry, const char *section,
+    const char *key, const char *value)
+{
+    if (NULL == entry)
+    {
+        return -1;
+    }
+
+    entry->section = DupStr(section);
+
+    if (NULL == entry->section)
+    {
+        return -1;
+    }
+
+    entry->key = DupStr(key);
+
+    if (NULL == entry->key)
+    {
+        free(entry->section);
+        return -1;
+    }
+
+    entry->value = DupStr(value);
+
+    if (NULL == entry->value)
+    {
+        free(entry->section);
+        free(entry->key);
+        return -1;
+    }
+
+    return 0;
 }
