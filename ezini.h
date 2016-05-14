@@ -55,18 +55,19 @@ typedef struct ini_entry_list_t
 ***************************************************************************/
 
 /* add entry to a sorted entry list */
-int ListAddEntry(ini_entry_list_t **list, const char *section, const char *key,
-    const char *value);
+int AddEntryToList(ini_entry_list_t **list, const char *section,
+    const char *key, const char *value);
 
-/* frees an entry list */
-void ListFreeEntries(ini_entry_list_t **list);
+/* frees all of the entries in an entry list */
+void FreeEntryList(ini_entry_list_t **list);
 
 /* create/add entries to an INI file from a sorted entry list */
-int FileMakeINI(const char *iniFile, const ini_entry_list_t *list);
-int FileAddEntry(const char *iniFile, const ini_entry_list_t *list);
+int MakeINIFile(const char *iniFile, const ini_entry_list_t *list);
+int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list);
 
 /* remove a single entry from an INI file */
-int FileDeleteEntry(const char *iniFile, const char *section, const char *key);
+int DeleteEntryFromFile(const char *iniFile, const char *section,
+    const char *key);
 
 /***************************************************************************
 * get the next entry in INI file.
@@ -74,6 +75,6 @@ int FileDeleteEntry(const char *iniFile, const char *section, const char *key);
 *           0 if there are no more entries
 *           -1 on error
 ***************************************************************************/
-int FileGetEntry(FILE *iniFile, ini_entry_t *entry);
+int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry);
 
 #endif  /* ndef EZINI_H */

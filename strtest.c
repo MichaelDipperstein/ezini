@@ -51,8 +51,9 @@
 
 /***************************************************************************
 *   Function   : main
-*   Description: This function calls GetEntry to read the test_strs.ini
-*                file and prints the entries as they are discovered.
+*   Description: This function calls GetEntryFromFile to read the
+*                test_strs.ini file and prints the entries as they are
+*                discovered.
 *   Parameters : argc - not used
 *                argc - not used
 *   Effects    : The (section, key, value) triples in test_strs.ini are
@@ -78,7 +79,7 @@ int main(int argc, char *argv[])
     entry.value = NULL;
 
     /* read one entry at a time */
-    while ((result = FileGetEntry(fp, &entry)) > 0)
+    while ((result = GetEntryFromFile(fp, &entry)) > 0)
     {
         printf("%s\n", entry.section);
         printf("\t%s\n", entry.key);

@@ -57,7 +57,7 @@ static int PopulateMyStruct(my_struct_t *my_struct, const ini_entry_t *entry);
 
 /***************************************************************************
 *   Function   : main
-*   Description: This creates test_struct.ini and calls FileGetEntry to
+*   Description: This creates test_struct.ini and calls GetEntryFromFile to
 *                read it.  PopulateMyStruct is called to load the entry
 *                values into an array of my_struct_t.  The contents of
 *                the populated struct array are printed.
@@ -84,23 +84,23 @@ int main(int argc, char *argv[])
 
     /* build list of entries for MakeINI */
     list = NULL;
-    ListAddEntry(&list, "struct 1", "int field", "123");
-    ListAddEntry(&list, "struct 2", "str field", "string2");
-    ListAddEntry(&list, "struct 1", "float field", "456.789");
-    ListAddEntry(&list, "struct 2", "float field", "987.654");
-    ListAddEntry(&list, "struct 1", "str field", "string1");
-    ListAddEntry(&list, "struct 2", "int field", "321");
+    AddEntryToList(&list, "struct 1", "int field", "123");
+    AddEntryToList(&list, "struct 2", "str field", "string2");
+    AddEntryToList(&list, "struct 1", "float field", "456.789");
+    AddEntryToList(&list, "struct 2", "float field", "987.654");
+    AddEntryToList(&list, "struct 1", "str field", "string1");
+    AddEntryToList(&list, "struct 2", "int field", "321");
 
     printf("\nWriting test_struct.ini\n");
     printf("=======================\n");
 
     /* now create the ini */
-    if (0 != FileMakeINI("test_struct.ini", list))
+    if (0 != MakeINIFile("test_struct.ini", list))
     {
         printf("Error making test_struct.ini file\n");
     }
 
-    ListFreeEntries(&list);
+    FreeEntryList(&list);
 
     printf("\nReading test_struct.ini\n");
     printf("=======================\n");
@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
     entry.value = NULL;
 
     /* read ini file back into a structure */
-    while ((result = FileGetEntry(fp, &entry)) > 0)
+    while ((result = GetEntryFromFile(fp, &entry)) > 0)
     {
         PopulateMyStruct(my_structs, &entry);
     }
@@ -135,20 +135,20 @@ int main(int argc, char *argv[])
     printf("\nModifying test_struct.ini\n");
     printf("=======================\n");
 
-    if (0 != FileDeleteEntry("test_struct.ini", "struct 1", "int field"))
+    if (0 != DeleteEntryFromFile("test_struct.ini", "struct 1", "int field"))
     {
         printf("Error deleting entry from test_struct.ini file\n");
     }
 
     list = NULL;
-    ListAddEntry(&list, "struct 1", "int field", "1234");
-    ListAddEntry(&list, "struct 2", "str field", "string2A");
-    ListAddEntry(&list, "struct 1", "float field", "456.7890");
-    ListAddEntry(&list, "struct 2", "float field", "987.6543");
-    ListAddEntry(&list, "struct 1", "str field", "string1A");
-    ListAddEntry(&list, "struct 2", "int field", "3210");
+    AddEntryToList(&list, "struct 1", "int field", "1234");
+    AddEntryToList(&list, "struct 2", "str field", "string2A");
+    AddEntryToList(&list, "struct 1", "float field", "456.7890");
+    AddEntryToList(&list, "struct 2", "float field", "987.6543");
+    AddEntryToList(&list, "struct 1", "str field", "string1A");
+    AddEntryToList(&list, "struct 2", "int field", "3210");
 
-    if (0 != FileAddEntry("test_struct.ini", list))
+    if (0 != AddEntryToFile("test_struct.ini", list))
     {
         printf("Error deleting entry from test_struct.ini file\n");
     }
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
     fp = fopen("test_struct.ini", "r");
 
     /* read ini file back into a structure */
-    while ((result = FileGetEntry(fp, &entry)) > 0)
+    while ((result = GetEntryFromFile(fp, &entry)) > 0)
     {
         PopulateMyStruct(my_structs, &entry);
     }

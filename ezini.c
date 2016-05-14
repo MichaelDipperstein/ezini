@@ -58,8 +58,33 @@ static int PopulateEntry(ini_entry_t *entry, const char *section,
 *                                FUNCTIONS
 ***************************************************************************/
 
-int ListAddEntry(ini_entry_list_t **list, const char *section, const char *key,
-    const char *value)
+/***************************************************************************
+*   Function   : AddEntryToList
+*   Description: This function adds a (section, key, value) entry to an
+*                entry list.  The entry will be inserted alphebetcially by
+*                section name then key.  If an entry containing the same
+*                section name and key already exists, the new value will
+*                overwrite the old value.
+*   Parameters : list - A pointer to an ini_entry_list_t pointer that
+*                       points to the head of an entry list.  Pass a pointer
+*                       to an ini_entry_list_t pointing to NULL if the
+*                       list needs to be created.
+*                section - A NULL terminated string containing the name of
+*                          the section for the entry.
+*                key - A NULL terminated string containing the name of the
+*                      key for the entry.
+*                value - A NULL terminated string containing the value of
+*                       the key for the entry.  All values must be
+*                       represented as strings.  They may be converted
+*                       to/from strings by the calling program
+*   Effects    : An entry structure containing copies of the (section, key,
+*                value) entry is added to the list passed as a parameter.
+*                memory will be dynamically allocated as needed.
+*   Returned   : 0 for success.  -1 for an error.  Error type is contained
+*                in errno.
+***************************************************************************/
+int AddEntryToList(ini_entry_list_t **list, const char *section,
+    const char *key, const char *value)
 {
     ini_entry_list_t *here;
     ini_entry_list_t *prev;
@@ -98,6 +123,7 @@ int ListAddEntry(ini_entry_list_t **list, const char *section, const char *key,
     /* find where to insert entry into non-empty list */
     here = *list;
     prev = NULL;
+    result = 0;
 
     while (NULL != here)
     {
@@ -147,7 +173,18 @@ int ListAddEntry(ini_entry_list_t **list, const char *section, const char *key,
     return 0;
 }
 
-void ListFreeEntries(ini_entry_list_t **list)
+/***************************************************************************
+*   Function   : FreeEntryList
+*   Description: This function steps head to tail through an entry list,
+*                freeing the memembers of each entry, then the entry
+*                itself.
+*   Parameters : list - A pointer to an ini_entry_list_t pointer that
+*                       points to the head of an entry list.
+*   Effects    : All of the memory allocated for all of the entries in
+*                an entry list will be freeded.
+*   Returned   : NONE
+***************************************************************************/
+void FreeEntryList(ini_entry_list_t **list)
 {
     ini_entry_list_t *here;
     ini_entry_list_t *next;
@@ -170,7 +207,7 @@ void ListFreeEntries(ini_entry_list_t **list)
 }
 
 /***************************************************************************
-*   Function   : FileMakeINI
+*   Function   : MakeINIFile
 *   Description: This function creates the specified INI file from the list
 *                of entries passed as an argument.  Any existing INI file
 *                with the same name in the same path will be overwritten.
@@ -184,7 +221,7 @@ void ListFreeEntries(ini_entry_list_t **list)
 *   Returned   : 0 for success, Non-zero on error.  Error type is contained
 *                in errno.
 ***************************************************************************/
-int FileMakeINI(const char *iniFile, const ini_entry_list_t *list)
+int MakeINIFile(const char *iniFile, const ini_entry_list_t *list)
 {
     char *section;
     FILE *fp;
@@ -227,8 +264,23 @@ int FileMakeINI(const char *iniFile, const ini_entry_list_t *list)
     fclose(fp);
     return 0;
 }
-
-int FileAddEntry(const char *iniFile, const ini_entry_list_t *list)
+/***************************************************************************
+*   Function   : AddEntryToFile
+*   Description: This function adds (section, key, value) entries in an
+*                entry list to an INI file.  The entries will be inserted
+*                alphebetcially by section name then key.  If an entry
+*                containing the same section name and key already exists,
+*                the new value will overwrite the old value.
+*   Parameters : iniFile - The name of the INI file to be modified.
+*                list - A pointer to list of sorted list of enteries to
+*                       be added to the INI File.
+*   Effects    : The INI file will be re-written containg the rusults of
+*                adding the enteries in the entry list to the entries
+*                already contained in the INI file.
+*   Returned   : 0 for success.  -1 for an error.  Error type is contained
+*                in errno.
+***************************************************************************/
+int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
 {
     ini_entry_t entry;
     ini_entry_list_t *merged;
@@ -261,44 +313,63 @@ int FileAddEntry(const char *iniFile, const ini_entry_list_t *list)
     entry.value = NULL;
 
     /* read ini file back into an entry list */
-    while ((result = FileGetEntry(fp, &entry)) > 0)
+    while ((result = GetEntryFromFile(fp, &entry)) > 0)
     {
-        ListAddEntry(&merged, entry.section, entry.key, entry.value);
+        AddEntryToList(&merged, entry.section, entry.key, entry.value);
     }
+
+    fclose(fp);
 
     if (result < 0)
     {
-        fclose(fp);
-        ListFreeEntries(&merged);
+        FreeEntryList(&merged);
         return -1;
     }
 
-    /* add entries passed into this function */
+    /* add entries passed into this function to entries from INI file */
     here = list;
 
     while (NULL != here)
     {
-        result = ListAddEntry(&merged, here->entry.section, here->entry.key,
+        result = AddEntryToList(&merged, here->entry.section, here->entry.key,
             here->entry.value);
 
         if (result != 0)
         {
-            fclose(fp);
-            ListFreeEntries(&merged);
+            FreeEntryList(&merged);
             return -1;
         }
 
         here = here->next;
     }
 
-    fclose(fp);
-    result = FileMakeINI(iniFile, merged);
-    ListFreeEntries(&merged);
+    /* re-write INI file from merged entry list */
+    result = MakeINIFile(iniFile, merged);
+    FreeEntryList(&merged);
 
     return result;
 }
 
-int FileDeleteEntry(const char *iniFile, const char *section, const char *key)
+/***************************************************************************
+*   Function   : DeleteEntryFromFile
+*   Description: This function deletes all entries from an INI file that
+*                match the section and key passed as an argument.
+*                NOTE: There will never be more than one matching entry in
+*                      INI files created by this library.
+*   Parameters : iniFile - The name of the INI file containing the entry
+*                          to be deleted.
+*                section - A pointer to a null terminated string containing
+*                         the name of the section of the entry to be
+*                         deleted.
+*                key - A pointer to a null terminated string containing the
+*                      name of the key of the entry to be deleted.
+*   Effects    : The INI file will be re-written without any entries that
+*                match the section and key to be deleted.
+*   Returned   : 0 for success.  -1 for an error.  Error type is contained
+*                in errno.
+***************************************************************************/
+int DeleteEntryFromFile(const char *iniFile, const char *section,
+    const char *key)
 {
     ini_entry_t entry;
     ini_entry_list_t *list;
@@ -336,17 +407,17 @@ int FileDeleteEntry(const char *iniFile, const char *section, const char *key)
     entry.value = NULL;
 
     /* read ini file back into a structure */
-    while ((result = FileGetEntry(fp, &entry)) > 0)
+    while ((result = GetEntryFromFile(fp, &entry)) > 0)
     {
         if (0 != strcmp(entry.section, section))
         {
             /* this isn't one we're supposed to delete */
-            ListAddEntry(&list, entry.section, entry.key, entry.value);
+            AddEntryToList(&list, entry.section, entry.key, entry.value);
         }
         else if (0 != strcmp(entry.key, key))
         {
             /* this isn't one we're supposed to delete */
-            ListAddEntry(&list, entry.section, entry.key, entry.value);
+            AddEntryToList(&list, entry.section, entry.key, entry.value);
         }
     }
 
@@ -354,32 +425,32 @@ int FileDeleteEntry(const char *iniFile, const char *section, const char *key)
 
     if (result < 0)
     {
-        ListFreeEntries(&list);
+        FreeEntryList(&list);
         return -1;
     }
 
-    result = FileMakeINI(iniFile, list);
-    ListFreeEntries(&list);
+    result = MakeINIFile(iniFile, list);
+    FreeEntryList(&list);
 
     return result;
 }
 
 /***************************************************************************
-*   Function   : FileGetEntry
+*   Function   : GetEntryFromFile
 *   Description: This function parses an INI file stream passed as an input,
 *                searching for the next (section, key, value) triple.  The
-*                resulting triple will be used to populate the entry structure
-*                passed as a parameter.
+*                resulting triple will be used to populate the entry
+*                structure passed as a parameter.
 *   Parameters : iniFile - A pointer to the INI file to be parsed.  It must
 *                          be opened for reading.
 *                entry - A pointer to the entry structure used to store the
 *                        discovered (section, key, value) triple.
-*   Effects    : The specified file is read until it discovers a
+*   Effects    : The specified file is read until it discovers an entry
 *   Returned   : 1 when an entry is found
 *                0 when no more entries can be found
 *                -1 for an error.  Error type is contained in errno.
 ***************************************************************************/
-int FileGetEntry(FILE *iniFile, ini_entry_t *entry)
+int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry)
 {
     char *line;
     char *ptr;
@@ -534,7 +605,6 @@ static void FreeEntry(ini_entry_t *entry)
     entry->value = NULL;
 }
 
-
 /***************************************************************************
 *   Function   : SkipWS
 *   Description: This function returns a pointer to the first non-space
@@ -686,6 +756,19 @@ static int CompairEntry(const void *p1, const void *p2)
     return result;
 }
 
+/***************************************************************************
+*   Function   : PopulateEntry
+*   Description: This function compares the entries pointed to by the void
+*                pointers p1 and p2 and returns an integer less than, equal
+*                to, or greater than zero if p1 is less than, equal to or
+*                greater than p2.
+*   Parameters : p1 - A pointer to the first entry
+*                p2 - A pointer to the second entry
+*   Effects    : None
+*   Returned   : An integer less than, equal to, or greater than zero if
+*                p1 is found, respectively, to be less than, to match, or be
+*                greater than p2.
+***************************************************************************/
 static int PopulateEntry(ini_entry_t *entry, const char *section,
     const char *key, const char *value)
 {
