@@ -35,19 +35,31 @@
 *                            TYPE DEFINITIONS
 ***************************************************************************/
 
-/* section, key, and value of INI file entry */
+/**
+ * \struct ini_entry_t
+ * \brief A structure containing the section, key, and value of INI.
+ * file entry
+ */
 typedef struct
 {
-    char *section;
-    char *key;
-    char *value;
+    char *section;      /*!< pointer to a NULL terminated string with the
+                            section name */
+    char *key;          /*!< pointer to a a NULL terminated string with entry
+                            key name */
+    char *value;        /*!< pointer to a NULL terminated string with entry value.
+                            Use ASCII strings to represent numbers */
 } ini_entry_t;
 
-/* structure for sorted list of entries */
+/**
+ * \struct ini_entry_list_t
+ * \brief A structure for sorted lists of entries.
+ */
 typedef struct ini_entry_list_t
 {
-    ini_entry_t entry;
-    struct ini_entry_list_t *next;
+    ini_entry_t entry;              /*!< An INI entry structure
+                                        (not a pointer) */
+    struct ini_entry_list_t *next;  /*!< A pointer to the next entry in
+                                        the list */
 } ini_entry_list_t;
 
 /***************************************************************************

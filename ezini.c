@@ -1,34 +1,31 @@
-/***************************************************************************
-*                  INI File section, key, and value parser
-*
-*   File    : ezini.c
-*   Purpose : This file implements a library function that parses an INI
-*             file for section, key, value triples and calling a callback
-*             function as triples are discovered.
-*   Author  : Michael Dipperstein
-*   Date    : November 22, 2015
-*
-****************************************************************************
-*
-* ezini: INI File section, key, and value parser
-* Copyright (C) 2015 by Michael Dipperstein (mdipper@alumni.cs.ucsb.edu)
-*
-* This file is part of the ezini library.
-*
-* The ezini library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Lesser General Public License as
-* published by the Free Software Foundation; either version 3 of the
-* License, or (at your option) any later version.
-*
-* The ezini library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
-* General Public License for more details.
-*
-* You should have received a copy of the GNU Lesser General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-***************************************************************************/
+/**
+ * \brief INI File handling library
+ * \file ezini.c
+ * \author Michael Dipperstein (mdipper@alumni.cs.ucsb.edu)
+ * \date November 22, 2015
+ *
+ * This file implements a set of library functions that maybe be used
+ * to create, update, and/or parse INI files.
+ *
+ * \copyright Copyright (C) 2015 by Michael Dipperstein
+ * (mdipper@alumni.cs.ucsb.edu)
+ *
+ * \license The ezini library is free software; you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either version 3
+ * of the License, or (at your option) any later version.
+ *
+ * \par
+ * The ezini library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.
+ *
+ * \par
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 /***************************************************************************
 *                             INCLUDED FILES
@@ -58,31 +55,38 @@ static int PopulateEntry(ini_entry_t *entry, const char *section,
 *                                FUNCTIONS
 ***************************************************************************/
 
-/***************************************************************************
-*   Function   : AddEntryToList
-*   Description: This function adds a (section, key, value) entry to an
-*                entry list.  The entry will be inserted alphebetcially by
-*                section name then key.  If an entry containing the same
-*                section name and key already exists, the new value will
-*                overwrite the old value.
-*   Parameters : list - A pointer to an ini_entry_list_t pointer that
-*                       points to the head of an entry list.  Pass a pointer
-*                       to an ini_entry_list_t pointing to NULL if the
-*                       list needs to be created.
-*                section - A NULL terminated string containing the name of
-*                          the section for the entry.
-*                key - A NULL terminated string containing the name of the
-*                      key for the entry.
-*                value - A NULL terminated string containing the value of
-*                       the key for the entry.  All values must be
-*                       represented as strings.  They may be converted
-*                       to/from strings by the calling program
-*   Effects    : An entry structure containing copies of the (section, key,
-*                value) entry is added to the list passed as a parameter.
-*                memory will be dynamically allocated as needed.
-*   Returned   : 0 for success.  -1 for an error.  Error type is contained
-*                in errno.
-***************************************************************************/
+/**
+ * \fn int AddEntryToList(ini_entry_list_t **list, const char *section,
+ * const char *key, const char *value)
+ *
+ * \brief This function adds a (section, key, value) entry to an entry list.
+ *
+ * \param list A pointer to an ini_entry_list_t pointer that points to the
+ * head of an entry list.  Pass a pointer to an ini_entry_list_t pointing
+ * to NULL if the list needs to be created.
+ *
+ * \param section A NULL terminated string containing the name of the
+ * section for the entry.
+ *
+ * \param key A NULL terminated string containing the name of the key for
+ * the entry.
+ *
+ * \param value A NULL terminated string containing the value of the key for
+ * the entry.  All values must be represented as strings.  They may be
+ * converted to/from strings by the calling program.
+ *
+ * \effects An entry structure containing copies of the (section, key,
+ * value) entry is added to the list passed as a parameter. memory will be
+ * dynamically allocated as needed.
+ *
+ * \returns 0 for success, Non-zero on error.  Error type is contained in
+ * errno.
+ *
+ * This function adds a (section, key, value) entry to an entry list.
+ * The entry will be inserted alphabetically by section name then key.
+ * If an entry containing the same section name and key already exists,
+ * the new value will overwrite the old value.
+ */
 int AddEntryToList(ini_entry_list_t **list, const char *section,
     const char *key, const char *value)
 {
@@ -173,17 +177,22 @@ int AddEntryToList(ini_entry_list_t **list, const char *section,
     return 0;
 }
 
-/***************************************************************************
-*   Function   : FreeEntryList
-*   Description: This function steps head to tail through an entry list,
-*                freeing the memembers of each entry, then the entry
-*                itself.
-*   Parameters : list - A pointer to an ini_entry_list_t pointer that
-*                       points to the head of an entry list.
-*   Effects    : All of the memory allocated for all of the entries in
-*                an entry list will be freeded.
-*   Returned   : NONE
-***************************************************************************/
+/**
+ * \fn void FreeEntryList(ini_entry_list_t **list)
+ * 
+ * \brief This function frees all of the members of an entry list.
+ *
+ * \param list A pointer to an ini_entry_list_t pointer that points to the
+ * head of an entry list.
+ *
+ * \effects All of the memory allocated for all of the entries in an entry
+ * list will be freeded.
+ *
+ * \returns Nothing
+ *
+ * This function steps from head to tail through an entry list, freeing
+ * each of the members of each entry, then the entry itself.
+ */
 void FreeEntryList(ini_entry_list_t **list)
 {
     ini_entry_list_t *here;
@@ -206,21 +215,28 @@ void FreeEntryList(ini_entry_list_t **list)
     } while (here != NULL);
 }
 
-/***************************************************************************
-*   Function   : MakeINIFile
-*   Description: This function creates the specified INI file from the list
-*                of entries passed as an argument.  Any existing INI file
-*                with the same name in the same path will be overwritten.
-*   Parameters : iniFile - The name of the INI file to be created
-*                list - A pointer to a sorted list of enteries.
-*   Effects    : The specified file is created and the (section, key, value)
-*                triples in the entry list are written to the file.  If
-*                the specified file already exists, it will be overwritten.
-*                If the entry list is not sorted, multiple sections with
-*                the same name may be created.
-*   Returned   : 0 for success, Non-zero on error.  Error type is contained
-*                in errno.
-***************************************************************************/
+/**
+ * \fn int MakeINIFile(const char *iniFile, const ini_entry_list_t *list)
+ * 
+ * \brief This function creates the specified INI file from the list of
+ * entries passed as an argument.
+ *
+ * \param iniFile The name of the INI file to be created.
+ *
+ * \param list A pointer to a sorted list of entries.
+ *
+ * \effects The specified file is created and the (section, key, value)
+ * triples in the entry list are written to the file.  If the specified
+ * file already exists, it will be overwritten.  If the entry list is not
+ * sorted, multiple sections with the same name may be created.
+ *
+ * \returns 0 for success, Non-zero on error.  Error type is contained in
+ * errno.
+ * 
+ * This function creates the specified INI file from the list of entries
+ * passed as an argument.  Any existing INI file with the same name in the
+ * same path will be overwritten.
+ */
 int MakeINIFile(const char *iniFile, const ini_entry_list_t *list)
 {
     char *section;
@@ -264,22 +280,30 @@ int MakeINIFile(const char *iniFile, const ini_entry_list_t *list)
     fclose(fp);
     return 0;
 }
-/***************************************************************************
-*   Function   : AddEntryToFile
-*   Description: This function adds (section, key, value) entries in an
-*                entry list to an INI file.  The entries will be inserted
-*                alphebetcially by section name then key.  If an entry
-*                containing the same section name and key already exists,
-*                the new value will overwrite the old value.
-*   Parameters : iniFile - The name of the INI file to be modified.
-*                list - A pointer to list of sorted list of enteries to
-*                       be added to the INI File.
-*   Effects    : The INI file will be re-written containg the rusults of
-*                adding the enteries in the entry list to the entries
-*                already contained in the INI file.
-*   Returned   : 0 for success.  -1 for an error.  Error type is contained
-*                in errno.
-***************************************************************************/
+
+/**
+ * \fn int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
+ * 
+ * \brief This function adds (section, key, value) entries in an entry list
+ * to an INI file.
+ *
+ * \param iniFile The name of the INI file to be modified.
+ *
+ * \param list A pointer to a sorted list of entries to be add to the INI
+ * file.
+ *
+ * \effects The INI file will be re-written containing the results of adding
+ * the entries in the entry list to the entries already contained in the INI
+ * file.
+ *
+ * \returns 0 for success, Non-zero on error.  Error type is contained in
+ * errno.
+ * 
+ * This function adds (section, key, value) entries in an entry list to an
+ * INI file.  The entries will be inserted alphabetically by section name
+ * then key.  If an entry containing the same section name and key already
+ * exists, the new value will overwrite the old value.
+ */
 int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
 {
     ini_entry_t entry;
@@ -350,24 +374,34 @@ int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
     return result;
 }
 
-/***************************************************************************
-*   Function   : DeleteEntryFromFile
-*   Description: This function deletes all entries from an INI file that
-*                match the section and key passed as an argument.
-*                NOTE: There will never be more than one matching entry in
-*                      INI files created by this library.
-*   Parameters : iniFile - The name of the INI file containing the entry
-*                          to be deleted.
-*                section - A pointer to a null terminated string containing
-*                         the name of the section of the entry to be
-*                         deleted.
-*                key - A pointer to a null terminated string containing the
-*                      name of the key of the entry to be deleted.
-*   Effects    : The INI file will be re-written without any entries that
-*                match the section and key to be deleted.
-*   Returned   : 0 for success.  -1 for an error.  Error type is contained
-*                in errno.
-***************************************************************************/
+/**
+ * \fn int DeleteEntryFromFile(const char *iniFile, const char *section,
+ * const char *key)
+ * 
+ * \brief This function deletes all entries from an INI file that match the
+ * section and key passed as an argument.
+ *
+ * \param iniFile The name of the INI file containing the entry to be
+ * deleted.
+ *
+ * \param section A pointer to a NULL terminated string containing the name
+ * of the section of the entry to be deleted.
+ * 
+ * \param key A pointer to a NULL terminated string containing the name of
+ * the key of the entry to be deleted.
+ *
+ * \effects The INI file will be re-written without any entries that match
+ * the section and key to be deleted.
+ *
+ * \returns 0 for success, Non-zero on error.  Error type is contained in
+ * errno.
+ * 
+ * This function deletes all entries from an INI file that match the section
+ * and key passed as an argument.
+ * 
+ * \note There will never be more than one matching entry in INI files
+ * created by this library.
+ */
 int DeleteEntryFromFile(const char *iniFile, const char *section,
     const char *key)
 {
@@ -450,6 +484,28 @@ int DeleteEntryFromFile(const char *iniFile, const char *section,
 *                0 when no more entries can be found
 *                -1 for an error.  Error type is contained in errno.
 ***************************************************************************/
+/**
+ * \fn int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry)
+ * 
+ * \brief This function parses an INI file stream passed as an input,
+ * searching for the next (section, key, value) triple.
+ *
+ * \param iniFile A pointer to the INI file to be parsed.  It must be
+ * opened for reading.
+ *
+ * \param entry A pointer to the entry structure used to store the discovered
+ * (section, key, value) triple.
+ *
+ * \effects The specified file is read until it discovers an entry.
+ *
+ * \returns 1 when an entry is found\n
+ *          0 when no more entries can be found\n
+ *         -1 for an error.  Error type is contained in errno.
+ * 
+ * This function parses an INI file stream passed as an input, searching for
+ * the next (section, key, value) triple.  The resulting triple will be used
+ * to populate the entry structure passed as a parameter.
+ */
 int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry)
 {
     char *line;
