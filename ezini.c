@@ -469,21 +469,6 @@ int DeleteEntryFromFile(const char *iniFile, const char *section,
     return result;
 }
 
-/***************************************************************************
-*   Function   : GetEntryFromFile
-*   Description: This function parses an INI file stream passed as an input,
-*                searching for the next (section, key, value) triple.  The
-*                resulting triple will be used to populate the entry
-*                structure passed as a parameter.
-*   Parameters : iniFile - A pointer to the INI file to be parsed.  It must
-*                          be opened for reading.
-*                entry - A pointer to the entry structure used to store the
-*                        discovered (section, key, value) triple.
-*   Effects    : The specified file is read until it discovers an entry
-*   Returned   : 1 when an entry is found
-*                0 when no more entries can be found
-*                -1 for an error.  Error type is contained in errno.
-***************************************************************************/
 /**
  * \fn int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry)
  * 
@@ -641,15 +626,20 @@ int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry)
     return 1;
 }
 
-/***************************************************************************
-*   Function   : FreeEntry
-*   Description: This function frees the allocated memory that is pointed to
-*                by the members of an ini_entry_t structure.
-*   Parameters : entry - pointer to the entry structure containing the
-*                        members pointing to the memory to be freed.
-*   Effects    : Dynamically allocated memory is freed.
-*   Returned   : None
-***************************************************************************/
+/**
+ * \fn static void FreeEntry(ini_entry_t *entry)
+ * 
+ * \brief This function frees the allocated memory that is pointed to by the
+ * members of an ini_entry_t structure.
+ *
+ * \param entry A pointer to the entry structure containing the members
+ * pointing to the memory to be freed.
+ *
+ * \effects Dynamically allocated memory is freed and entry data is set
+ * to NULL.
+ *
+ * \returns Nothing
+ */
 static void FreeEntry(ini_entry_t *entry)
 {
     free(entry->section);
@@ -661,14 +651,18 @@ static void FreeEntry(ini_entry_t *entry)
     entry->value = NULL;
 }
 
-/***************************************************************************
-*   Function   : SkipWS
-*   Description: This function returns a pointer to the first non-space
-*                in the string passed as a parameter.
-*   Parameters : str - string being searched
-*   Effects    : None
-*   Returned   : A pointer to the first non-space in str.
-***************************************************************************/
+/**
+ * \fn static char *SkipWS(const char *str)
+ * 
+ * \brief This function returns a pointer to the first non-space in the
+ * string passed as a parameter.
+ *
+ * \param str A pointer to the string being searched.
+ *
+ * \effects None
+ *
+ * \returns A pointer to the first non-space in str.
+ */
 static char *SkipWS(const char *str)
 {
     char *c;
@@ -682,16 +676,22 @@ static char *SkipWS(const char *str)
     return c;
 }
 
-/***************************************************************************
-*   Function   : DupStr
-*   Description: This function returns a copy of the string passed as a
-*                parameter.  The memory for the copy is allocated by
-*                malloc and must be freed by the caller.
-*   Parameters : str - string being copied
-*   Effects    : None
-*   Returned   : A copy of str in malloced memory is returned on success.
-*                NULL is returned on failure.
-***************************************************************************/
+/**
+ * \fn static char *DupStr(const char *src)
+ * 
+ * \brief This function returns a copy of the string passed as a parameter.
+ *
+ * \param str A pointer to the string being being copied.
+ *
+ * \effects Memory is dynamically allocated to hold a duplicate of the
+ * input string.
+ *
+ * \returns A copy of str in malloced memory is returned on success.  NULL
+ * is returned on failure.
+ *
+ * This function returns a copy of the string passed as a parameter.  The
+ * memory for the copy is allocated by malloc() and must be freed by the caller.
+ */
 static char *DupStr(const char *src)
 {
     char *dest;
@@ -711,19 +711,25 @@ static char *DupStr(const char *src)
     return dest;
 }
 
-/***************************************************************************
-*   Function   : GetLine
-*   Description: This function returns a NULL terminated array of char
-*                containing the next line in the file passed as an argument.
-*                The memory for the string returned is allocated by malloc
-*                and must be freed by the caller.
-*   Parameters : fp - pointer to the file being read
-*   Effects    : One line is read from fp and copied into a dynamically
-*                allocated string.
-*   Returned   : A NULL terminated array of char containing the next line
-*                in fp is retured.  The array must be free by the caller.
-*                NULL is returned at end of file.
-***************************************************************************/
+/**
+ * \fn static char *GetLine(FILE *fp)
+ * 
+ * \brief This function returns a NULL terminated array of char containing the
+ * next line in the file passed as an argument.
+ *
+ * \param fp A pointer to the file being read.
+ *
+ * \effects One line is read from fp and copied into a dynamically allocated
+ * string.
+ *
+ * \returns A NULL terminated array of char containing the next line in fp
+ * is retured.  The array must be free by the caller. NULL is returned at end
+ * of file.
+ *
+ * This function returns a NULL terminated array of char containing the next
+ * line in the file passed as an argument.  The memory for the string returned
+ * is allocated by malloc() and must be freed by the caller.
+ */
 static char *GetLine(FILE *fp)
 {
     char *line;         /* string to read line into */
@@ -774,23 +780,28 @@ static char *GetLine(FILE *fp)
     return line;
 }
 
-/***************************************************************************
-*   Function   : CompairEntry
-*   Description: This function compares the entries pointed to by the void
-*                pointers p1 and p2 and returns an integer less than, equal
-*                to, or greater than zero if p1 is less than, equal to or
-*                greater than p2.
-*   Parameters : p1 - A pointer to the first entry
-*                p2 - A pointer to the second entry
-*   Effects    : None
-*   Returned   : An integer less than, equal to, or greater than zero if
-*                p1 is found, respectively, to be less than, to match, or be
-*                greater than p2.
-*
-*                NOTE: Entries are compared by section, if the sections are
-*                equal, their keys are compared.  Their values are never
-*                compared.
-***************************************************************************/
+/**
+ * \fn static int CompairEntry(const void *p1, const void *p2)
+ * 
+ * \brief This function compares the entries pointed to by the void pointers
+ * p1 and p2.
+ *
+ * \param p1 A pointer to the first entry
+ *
+ * \param p2 A pointer to the second entry
+ *
+ * \effects None
+ *
+ * \returns An integer less than, equal to, or greater than zero if p1 is
+ * found, respectively, to be less than, to match, or be greater than p2.
+ *
+ * This function compares the entries pointed to by the void pointers p1 and
+ * p2 and returns an integer less than, equal to, or greater than zero if p1
+ * is less than, equal to or greater than p2.
+ *
+ * \note Entries are compared by section, if the sections are equal, their
+ * keys are compared.  Their values are never compared.
+ */
 static int CompairEntry(const void *p1, const void *p2)
 {
     char *s1;
@@ -812,19 +823,34 @@ static int CompairEntry(const void *p1, const void *p2)
     return result;
 }
 
-/***************************************************************************
-*   Function   : PopulateEntry
-*   Description: This function compares the entries pointed to by the void
-*                pointers p1 and p2 and returns an integer less than, equal
-*                to, or greater than zero if p1 is less than, equal to or
-*                greater than p2.
-*   Parameters : p1 - A pointer to the first entry
-*                p2 - A pointer to the second entry
-*   Effects    : None
-*   Returned   : An integer less than, equal to, or greater than zero if
-*                p1 is found, respectively, to be less than, to match, or be
-*                greater than p2.
-***************************************************************************/
+/**
+ * \fn static int PopulateEntry(ini_entry_t *entry, const char *section,
+ *      const char *key, const char *value)
+ * 
+ * \brief This function populates the fields of an ini_entry_t structure with
+ * dynamically allocated copies of the section, key, and value that are passed
+ * as parameters
+ *
+ * \param entry A pointer to the ini_entry_t structure being populated
+ *
+ * \param section A pointer to a NULL terminated string containing the section
+ * name for this entry
+ *
+ * \param key A pointer to a NULL terminated string containing the key
+ * name for this entry
+ *
+ * \param value A pointer to a NULL terminated string containing the value
+ * for this entry
+ *
+ * \effects None
+ *
+ * \returns 0 for success, and non-zero for failure
+ *
+ * This function populates the fields of an ini_entry_t structure with
+ * dynamically allocated copies of the section, key, and value that are passed
+ * as parameters.  The resulting structure should be freed using
+ * FreeEntry().
+ */
 static int PopulateEntry(ini_entry_t *entry, const char *section,
     const char *key, const char *value)
 {
