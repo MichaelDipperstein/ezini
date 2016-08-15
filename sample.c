@@ -1,32 +1,42 @@
-/***************************************************************************
-*                 Sample Program using ezini INI File parser
-*
-*   File    : sample.c
-*   Purpose : To demonstrate the usage of the ezini INI file parser
-*   Author  : Michael Dipperstein
-*   Date    : November 22, 2015
-*
-****************************************************************************
-*
-* sample: Sample usage of the ezini INI File parser
-* Copyright (C) 2015 by Michael Dipperstein (mdipper@alumni.cs.ucsb.edu)
-*
-* This file is part of the ezini library.
-*
-* The ezini library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Lesser General Public License as
-* published by the Free Software Foundation; either version 3 of the
-* License, or (at your option) any later version.
-*
-* The ezini library is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
-* General Public License for more details.
-*
-* You should have received a copy of the GNU Lesser General Public License
-* along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*
-***************************************************************************/
+/**
+ * \brief Sample program demonstrating the usage of the ezini INI file
+ * handling library
+ * \file sample.c
+ * \author Michael Dipperstein (mdipper@alumni.cs.ucsb.edu)
+ * \date November 22, 2015
+ *
+ * This file implements a set of library functions that maybe be used
+ * to create, update, and/or parse INI files.
+ *
+ * \copyright Copyright (C) 2015 by Michael Dipperstein
+ * (mdipper@alumni.cs.ucsb.edu)
+ *
+ * \par
+ * This file is part of the ezini library.
+ *
+ * \license The ezini library is free software; you can redistribute it
+ * and/or modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either version 3
+ * of the License, or (at your option) any later version.
+ *
+ * \par
+ * The ezini library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser
+ * General Public License for more details.
+ *
+ * \par
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+/**
+ * \defgroup examples Usage Examples
+ * \brief This module contains code demonstrating the usage of the ezini INI
+ * file handling library
+ * @{
+ */
 
 /***************************************************************************
 *                             INCLUDED FILES
@@ -39,11 +49,23 @@
 /***************************************************************************
 *                            TYPE DEFINITIONS
 ***************************************************************************/
+
+/**
+ * \struct my_struct_t
+ * \brief A structure containing the section, key, and value of INI.
+ * file entry
+ */
+
+/**
+ * \typedef struct my_struct_t
+ * \brief A shortcut for struct my_struct_t
+ */
+
 typedef struct my_struct_t
 {
-    int     myInt;
-    float   myFloat;
-    char    myString[10];
+    int     myInt;          /*!< An integer value */
+    float   myFloat;        /*!< An floating point value */
+    char    myString[10];   /*!< A NULL terminated string */
 } my_struct_t;
 
 /***************************************************************************
@@ -55,20 +77,25 @@ static int PopulateMyStruct(my_struct_t *my_struct, const ini_entry_t *entry);
 *                                FUNCTIONS
 ***************************************************************************/
 
-/***************************************************************************
-*   Function   : main
-*   Description: This creates test_struct.ini and calls GetEntryFromFile to
-*                read it.  PopulateMyStruct is called to load the entry
-*                values into an array of my_struct_t.  The contents of
-*                the populated struct array are printed.
-*   Parameters : argc - not used
-*                argc - not used
-*   Effects    : test_struct.ini is created and it's enteries are
-*                used to populate my_struct_t, a two element array of
-*                my_struct_t.  Its contents are printed and test_struct.ini
-*                is deleted.
-*   Returned   : 0
-***************************************************************************/
+/**
+ * \fn int main(int argc, char *argv[])
+ * 
+ * \brief This creates test_struct.ini and calls GetEntryFromFile to read it.
+ *
+ * \param argc Not Used
+ *
+ * \param argv Not Used
+ *
+ * \effects test_struct.ini is created and it's enteries are used to populate
+ * my_struct_t, a two element array of my_struct_t.  Its contents are printed
+ * and test_struct.ini is deleted.
+ *
+ * \returns 0 (regardless of results)
+ *
+ * This creates test_struct.ini and calls GetEntryFromFile() to read it.
+ * PopulateMyStruct() is called to load the entry values into an array of
+ * my_struct_t.  The contents of the populated struct array are printed.
+ */
 int main(int argc, char *argv[])
 {
     my_struct_t my_structs[2];
@@ -180,22 +207,29 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-/***************************************************************************
-*   Function   : PopulateMyStruct
-*   Description: This function stores section, key, value entries into an
-*                array of my_struct_t.  The section number is used as the
-*                array index.  key is the name of struct the field that the
-*                value is to be stored in.  Values are converted to the
-*                correct type based on the type of the field that they are
-*                stored into.
-*   Parameters : my_struct - A pointer to the array of my_struct_t that
-*                            entries will be stored into.
-*                entry - The section, key, value strings discovered by
-*                        GetEntry.
-*   Effects    : The (section, key, value) strings are used to fill the
-*                my_struct_t type array passed as my_struct.
-*   Returned   : 0 on success and -1 on failure.
-***************************************************************************/
+/**
+ * \fn static int PopulateMyStruct(my_struct_t *my_struct,
+ *      const ini_entry_t *entry)
+ * 
+ * \brief This function stores section, key, value entries into an array of
+ * my_struct_t.
+ *
+ * \param my_struct A pointer to the array of my_struct_t that entries will
+ * be stored into.
+ *
+ * \param entry The section, key, value strings discovered by GetEntry.
+ *
+ * \effects The (section, key, value) strings are used to fill the my_struct_t
+ * type array passed as my_struct.
+ *
+ * \returns 0 on success and non-zero on failure.
+ *
+ * This function stores section, key, value entries into an array of
+ * my_struct_t.  The section number is used as the array index.  key is the
+ * name of struct the field that the value is to be stored in.  Values are
+ * converted to the correct type based on the type of the field that they are
+ * stored into.
+ */
 static int PopulateMyStruct(my_struct_t *my_struct, const ini_entry_t *entry)
 {
     my_struct_t *ptr;
@@ -239,3 +273,5 @@ static int PopulateMyStruct(my_struct_t *my_struct, const ini_entry_t *entry)
 
     return 0;
 }
+
+/**@}*/

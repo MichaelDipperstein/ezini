@@ -34,90 +34,9 @@ Write an INI file by using AddEntryToList to build an entry list, then call
 MakeINIFile to make a file from the entry list.  Call FreeEntryList when
 you are done.
 
-LIBRARY API
------------
-Writing INI File:
-int MakeINIFile(const char *iniFile, const ini_entry_list_t *list)
-iniFile
-    The name of the INI file to be created.
-entries
-    A pointer to an array of ini_entry_t type elements that will be used to
-    create the INI file.
-list
-    A pointer to a sorted list of enteries.
-Return Value
-    0 for success
-    Non-zero for failure.  Error type is contained in errno.
-
-
-Creating/Adding to Entry List:
-int AddEntryToList(ini_entry_list_t **list, const char *section,
-    const char *key, const char *value)
-list
-    A pointer to an ini_entry_list_t pointer that points to the head of an
-    entry list.  Pass a pointer to an ini_entry_list_t pointing to NULL if the
-    list needs to be created.
-section
-    A NULL terminated string containing the name of the section for the entry.
-key
-    A NULL terminated string containing the name of the key for the entry.
-value
-    A NULL terminated string containing the value of the key for the entry.
-    All values must be represented as strings.  They may be converted to/from
-    strings by the calling program
-Returned Value
-    0 for success
-    -1 for an error.  Error type is contained in errno.
-
-
-Freeing an Entry List:
-void FreeEntryList(ini_entry_list_t **list)
-list
-    A pointer to an ini_entry_list_t pointer that points to the head of an
-    entry list.
-Returned Value
-    None
-
-
-Getting INI File Entries:
-int GetEntry(FILE *iniFile, ini_entry_t *entry)
-iniFile
-    A pointer to the INI file to be parsed.  The file must be opened for
-    reading.
-entry
-    A pointer to the entry structure used to store the discovered
-    (section, key, value) triple.
-Return Value
-    1 for success
-    0 if no triples were discovered
-    -1 for failure.  Error type is contained in errno.
-
-
-Adding an Entries to an INI File:
-int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
-iniFile
-    The name of the INI file to be modified.
-list
-    A pointer to list of sorted list of enteries to be added to the INI File.
-Return Value
-    0 for success
-    -1 for an error.  Error type is contained in errno.
-
-
-Deleting an Entry from an INI File:
-int DeleteEntryFromFile(const char *iniFile, const char *section,
-    const char *key)
-iniFile
-    The name of the INI file containing the entry to be deleted.
-section
-    A pointer to a null terminated string containing the name of the section of
-    the entry to be deleted.
-key
-    A pointer to a null terminated string containing the name of the key of the
-    entry to be deleted.
-Return Value
-    0 for success
-    -1 for an error.  Error type is contained in errno.
+DOCUMENTATION
+-------------
+See http://michael.dipperstein.com/ezini/doxygen
 
 HISTORY
 -------
@@ -127,6 +46,7 @@ HISTORY
          - Use open FILE pointer instead of full path to INI file
 05/15/16 - Added functions to add and delete entries from INI file
          - Made function names consistent
+08/14/16 - Reformatted comments for Doxygen documentation
 
 TODO
 ----

@@ -10,6 +10,9 @@
  * \copyright Copyright (C) 2015 by Michael Dipperstein
  * (mdipper@alumni.cs.ucsb.edu)
  *
+ * \par
+ * This file is part of the ezini library.
+ *
  * \license The ezini library is free software; you can redistribute it
  * and/or modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either version 3
@@ -25,6 +28,13 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
+ */
+
+/**
+ * \defgroup library Library Code
+ * \brief This module contains the code for the ezini INI file handling
+ * library
+ * @{
  */
 
 /***************************************************************************
@@ -885,3 +895,5 @@ static int PopulateEntry(ini_entry_t *entry, const char *section,
 
     return 0;
 }
+
+/**@}*/
