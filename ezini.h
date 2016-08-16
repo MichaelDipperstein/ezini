@@ -33,9 +33,9 @@
 #define EZINI_H
 
 /**
- * \mainpage EZINI - INI File handling library
+ * \mainpage EZIni - INI File handling library
  *
- * These pages provide documentation for EZINI, an INI File handling library.
+ * These pages provide documentation for EZIni, an INI File handling library.
  *
  * \copyright Copyright (C) 2015 by Michael Dipperstein
  * (mdipper@alumni.cs.ucsb.edu)
