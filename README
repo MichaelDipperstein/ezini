@@ -14,6 +14,8 @@ ezini.h         - Function and type definitions for the ezini library
 Makefile        - makefile for this project (assumes gcc compiler and GNU make)
 README          - this file
 sample.c        - Program demonstrating how to use the ezini library
+strtest.c       - Program to test handling of INI line formats
+test_strs.ini   - INI file testing formats
 
 BUILDING
 --------
