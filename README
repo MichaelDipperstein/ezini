@@ -51,8 +51,8 @@ HISTORY
 08/14/16 - Reformatted comments for Doxygen documentation
 09/12/19 - Restructured list of (section, value, key) entries
          - Passing NULL pointer to MakeINIFile will print to stdout
-         - updated e-mail address
-         - fix doxygen errors
+         - Updated e-mail address
+         - Fixed doxygen errors
 
 TODO
 ----
