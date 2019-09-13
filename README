@@ -33,8 +33,8 @@ multiple entry structures may be linked together in an entry list
 Read an INI file by calling GetEntryFromFile until it returns 0.
 
 Write an INI file by using AddEntryToList to build an entry list, then call
-MakeINIFile to make a file from the entry list.  Call FreeEntryList when
-you are done.
+MakeINIFile to make a file from the entry list.  Call FreeList when you are
+done.
 
 DOCUMENTATION
 -------------
