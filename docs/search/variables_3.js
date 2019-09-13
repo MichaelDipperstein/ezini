@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['next',['next',['../structini__entry__list__t.html#ad89677566f00a949538b855ca5f7983d',1,'ini_entry_list_t']]]
+  ['section',['section',['../structini__section__list__t.html#a34053b1a08396d7684fa1c2a83257343',1,'ini_section_list_t::section()'],['../structini__entry__t.html#a34053b1a08396d7684fa1c2a83257343',1,'ini_entry_t::section()']]]
 ];

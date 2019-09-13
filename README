@@ -49,6 +49,10 @@ HISTORY
 05/15/16 - Added functions to add and delete entries from INI file
          - Made function names consistent
 08/14/16 - Reformatted comments for Doxygen documentation
+09/12/19 - Restructured list of (section, value, key) entries
+         - Passing NULL pointer to MakeINIFile will print to stdout
+         - updated e-mail address
+         - fix doxygen errors
 
 TODO
 ----
@@ -56,4 +60,4 @@ TODO
 
 AUTHOR
 ------
-Michael Dipperstein (mdipper@alumni.engr.ucsb.edu)
+Michael Dipperstein (mdipperstein@gmail.com)

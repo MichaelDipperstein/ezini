@@ -38,6 +38,10 @@ strtest.o:		strtest.c ezini.h
 ezini.o:	ezini.c ezini.h
 		$(CC) $(CFLAGS) $<
 
+docs:		doxygen.conf ezini.c ezini.h sample.c strtest.c
+		rm -rf docs
+		doxygen $<
+
 clean:
 		$(DEL) *.o
 		$(DEL) $(TARGET)

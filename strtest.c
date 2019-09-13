@@ -1,19 +1,20 @@
 /**
  * \brief A Test Program using the ezini INI file handling library
  * \file strtest.c
- * \author Michael Dipperstein (mdipper@alumni.cs.ucsb.edu)
+ * \author Michael Dipperstein (mdipperstein@gmail.com)
  * \date November 22, 2015
  *
  * This file test the INI parser on a variety of (section, key, value)
  * strings.
  *
- * \copyright Copyright (C) 2015 by Michael Dipperstein
- * (mdipper@alumni.cs.ucsb.edu)
+ * \copyright Copyright (C) 2015, 2019 by Michael Dipperstein
+ * (mdipperstein@gmail.com)
  *
  * \par
  * This file is part of the ezini library.
  *
- * \license The ezini library is free software; you can redistribute it
+ * \license
+ * The ezini library is free software; you can redistribute it
  * and/or modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either version 3
  * of the License, or (at your option) any later version.
@@ -65,7 +66,7 @@
 
 /**
  * \fn int strtest_main(int argc, char *argv[])
- * 
+ *
  * \brief This function calls GetEntryFromFile() to read the test_strs.ini
  * file and prints the entries as they are discovered.
  *
@@ -73,7 +74,8 @@
  *
  * \param argv Not Used
  *
- * \effects The (section, key, value) triples in test_strs.ini are printed.
+ * \effects
+ * The (section, key, value) triples in test_strs.ini are printed.
  *
  * \returns 0 (regardless of results)
  */

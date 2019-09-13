@@ -1,5 +1,0 @@
-<map id="MakeINIFile" name="MakeINIFile">
-<area shape="rect" id="node2" href="$group__library.html#ga76c6bb3e52345c5af33da3009176f189" title="This function adds (section, key, value) entries in an entry list to an INI file. ..." alt="" coords="162,5,274,32"/>
-<area shape="rect" id="node3" href="$group__library.html#gaa68ff5fcb6937681d8ae4f5000cf8eb6" title="This function deletes all entries from an INI file that match the section and key passed as an argume..." alt="" coords="147,56,289,83"/>
-<area shape="rect" id="node4" href="$group__examples.html#ga0ddf1224851353fc92bfbff6f499fa97" title="This creates test_struct.ini and calls GetEntryFromFile to read it. " alt="" coords="193,107,243,133"/>
-</map>

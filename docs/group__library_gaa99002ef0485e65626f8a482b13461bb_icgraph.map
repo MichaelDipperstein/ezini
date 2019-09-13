@@ -1,0 +1,5 @@
+<map id="FreeList" name="FreeList">
+<area shape="rect" id="node2" href="$group__library.html#ga6f5b86de7f612aeb20935685c5975e7e" title="This function adds (section, key, value) entries in an entry list to an INI file. ..." alt="" coords="143,5,261,32"/>
+<area shape="rect" id="node3" href="$group__library.html#gaa68ff5fcb6937681d8ae4f5000cf8eb6" title="This function deletes all entries from an INI file that match the section and key passed as an argume..." alt="" coords="125,56,279,83"/>
+<area shape="rect" id="node4" href="$group__examples.html#ga0ddf1224851353fc92bfbff6f499fa97" title="This creates test_struct.ini and calls GetEntryFromFile to read it. " alt="" coords="175,107,229,133"/>
+</map>

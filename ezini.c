@@ -1,19 +1,20 @@
 /**
  * \brief INI File handling library
  * \file ezini.c
- * \author Michael Dipperstein (mdipper@alumni.cs.ucsb.edu)
+ * \author Michael Dipperstein (mdipperstein@gmail.com)
  * \date November 22, 2015
  *
  * This file implements a set of library functions that maybe be used
  * to create, update, and/or parse INI files.
  *
- * \copyright Copyright (C) 2015 by Michael Dipperstein
- * (mdipper@alumni.cs.ucsb.edu)
+ * \copyright Copyright (C) 2015, 2019 by Michael Dipperstein
+ * (mdipperstein@gmail.com)
  *
  * \par
  * This file is part of the ezini library.
  *
- * \license The ezini library is free software; you can redistribute it
+ * \license
+ * The ezini library is free software; you can redistribute it
  * and/or modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either version 3
  * of the License, or (at your option) any later version.
@@ -48,215 +49,281 @@
 #include "ezini.h"
 
 /***************************************************************************
+*                            TYPE DEFINITIONS
+***************************************************************************/
+
+/**
+ * \struct ini_key_list_t
+ * \brief A structure used for creating linked lists of key/value pairs
+ * for a each section.
+ */
+
+/**
+ * \typedef struct ini_key_list_t
+ * \brief A shortcut for struct ini_key_list_t
+ */
+
+typedef struct ini_key_list_t
+{
+    char *key;                  /*!< pointer to a a NULL terminated string
+                                    containing key name for this entry */
+    char *value;                /*!< pointer to a NULL terminated string
+                                    containing key value for this entry Use
+                                    ASCII strings to represent numbers */
+    struct ini_key_list_t *next;/*!< pointer to the next key/value pair in
+                                    in this section */
+
+} ini_key_list_t;
+
+
+/**
+ * \struct ini_section_list_t
+ * \brief A structure used for creating linked lists of sections, each
+ *  maintaining its own list of key/value pairs.
+ */
+
+/**
+ * \typedef struct ini_section_list_t
+ * \brief A shortcut for struct ini_section_list_t
+ */
+
+typedef struct ini_section_list_t
+{
+    char *section;                      /*!< pointer to a NULL terminated string
+                                            containing the section name */
+    ini_key_list_t *members;            /*!< pointer to the list of all key/value
+                                            pairs in this section */
+    struct ini_section_list_t *next;    /*!< pointer to the next section in
+                                            the list of entries */
+
+} ini_section_list_t;
+
+
+/***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
+
+/* allocate */
+static ini_key_list_t *NewKeyList(const char *key, const char *value);
+static ini_section_list_t *NewSectionList(const char *section, const char *key,
+    const char *value);
+
+/* free */
+static void FreeKeyList(ini_key_list_t *list);
 static void FreeEntry(ini_entry_t *entry);
 
+/* utilities */
 static char *SkipWS(const char *str);
 static char *DupStr(const char *src);
 static char *GetLine(FILE *fp);
-
-static int CompairEntry(const void *p1, const void *p2);
-
-static int PopulateEntry(ini_entry_t *entry, const char *section,
-    const char *key, const char *value);
 
 /***************************************************************************
 *                                FUNCTIONS
 ***************************************************************************/
 
 /**
- * \fn int AddEntryToList(ini_entry_list_t **list, const char *section,
+ * \fn int AddEntryToList(ini_entry_list_t *list, const char *section,
  * const char *key, const char *value)
  *
  * \brief This function adds a (section, key, value) entry to an entry list.
  *
- * \param list A pointer to an ini_entry_list_t pointer that points to the
- * head of an entry list.  Pass a pointer to an ini_entry_list_t pointing
- * to NULL if the list needs to be created.
+ * \param list A pointer to an ini_entry_list_t that points to the
+ * head of entry list being modified.  Pass a pointer to an ini_entry_list_t
+ * pointing to NULL if the list needs to be created.
  *
  * \param section A NULL terminated string containing the name of the
- * section for the entry.
+ * section for the entry being added.
  *
  * \param key A NULL terminated string containing the name of the key for
- * the entry.
+ * the entry being added.
  *
  * \param value A NULL terminated string containing the value of the key for
- * the entry.  All values must be represented as strings.  They may be
- * converted to/from strings by the calling program.
+ * the entry being added.  All values must be represented as strings.  They may
+ * be converted to/from strings by the calling program.
  *
- * \effects An entry structure containing copies of the (section, key,
- * value) entry is added to the list passed as a parameter. memory will be
- * dynamically allocated as needed.
+ * \effects
+ * Information used to generate an entry structure containing copies of
+ * the (section, key, value) entry is added to the list passed as a parameter.
+ * Memory will be dynamically allocated as needed.
  *
  * \returns 0 for success, Non-zero on error.  Error type is contained in
  * errno.
  *
- * This function adds a (section, key, value) entry to an entry list.
- * The entry will be inserted alphabetically by section name then key.
+ * This function adds information used to create a (section, key, value) entry
+ * to an entry list.
+ *
  * If an entry containing the same section name and key already exists,
  * the new value will overwrite the old value.
+ *
+ * If the entry is for an existing section, it will be added to the end of the
+ * list for that section.
+ *
+ * If the entry is for a new section, a new section will be added to the list of
+ * sections, and the key/value pair will be the first entry of the section.
  */
-int AddEntryToList(ini_entry_list_t **list, const char *section,
+int AddEntryToList(ini_entry_list_t *list, const char *section,
     const char *key, const char *value)
 {
-    ini_entry_list_t *here;
-    ini_entry_list_t *prev;
-    ini_entry_list_t *tmp;
-    ini_entry_t entry;
+    ini_section_list_t *next;
     int result;
 
     /* handle empty list */
     if (NULL == *list)
     {
-        *list = (ini_entry_list_t *)malloc(sizeof(ini_entry_list_t));
+        /* add the first entry to the list */
+        *list = NewSectionList(section, key, value);
 
         if (NULL == *list)
         {
             return -1;
         }
 
-        /* copy triple into entry */
-        if (0 != PopulateEntry(&((*list)->entry), section, key, value))
-        {
-            return -1;
-        }
-
-        (*list)->next = NULL;
-
         return 0;
     }
 
-    /* make entry to be inserted.  it's easier to work with. */
-    if (0 != PopulateEntry(&entry, section, key, value))
+    next = *list;
+    result = 1;
+
+    while (1)
     {
-        return -1;
-    }
+        result = strcmp(section, next->section);
 
-
-    /* find where to insert entry into non-empty list */
-    here = *list;
-    prev = NULL;
-    result = 0;
-
-    while (NULL != here)
-    {
-        result = CompairEntry(&entry, &(here->entry));
-
-        if (result <= 0)
+        if (0 == result)
         {
-            break;
+            break;      /* match, insert here */
         }
 
-        prev = here;
-        here = here->next;
+        if (NULL == next->next)
+        {
+            break;      /* no match, create new section here */
+        }
+
+        next = next->next;
     }
 
-    /* we found where we need to insert the entry */
     if (0 == result)
     {
-        /* section and key match, just replace the value */
-        free(here->entry.value);
-        here->entry.value = DupStr(value);
-        return 0;
-    }
+        ini_key_list_t *member;
 
-   tmp = (ini_entry_list_t *)malloc(sizeof(ini_entry_list_t));
+        member = next->members;
 
-    if (NULL == tmp)
-    {
-        FreeEntry(&entry);
-        return -1;
-    }
+        while (1)
+        {
+            result = strcmp(key, member->key);
 
-    tmp->entry.section = entry.section;
-    tmp->entry.key = entry.key;
-    tmp->entry.value = entry.value;
-    tmp->next = here;
+            if (0 == result)
+            {
+                break;      /* match, insert here */
+            }
 
-    if (NULL == prev)
-    {
-        /* insert at the head of the list */
-        *list = tmp;
+            if (NULL == member->next)
+            {
+                break;      /* no match, create new section here */
+            }
+
+            member = member->next;
+        }
+
+        if (0 == result)
+        {
+            /* key exists, change value */
+            free(member->value);
+            member->value = DupStr(value);
+
+            if (NULL == member->value)
+            {
+                return -1;
+            }
+        }
+        else
+        {
+            /* new key, add to list */
+            member->next = NewKeyList(key, value);
+
+            if (NULL == member->next)
+            {
+                return -1;
+            }
+        }
     }
     else
     {
-        prev->next = tmp;
+        /* add the section to the list with this key and value */
+        next->next = NewSectionList(section, key, value);
     }
 
     return 0;
 }
 
+
 /**
- * \fn void FreeEntryList(ini_entry_list_t **list)
- * 
+ * \fn void FreeList(ini_entry_list_t list)
+ *
  * \brief This function frees all of the members of an entry list.
  *
- * \param list A pointer to an ini_entry_list_t pointer that points to the
- * head of an entry list.
+ * \param list A pointer to the head of an ini_entry_list_t
  *
- * \effects All of the memory allocated for all of the entries in an entry
- * list will be freeded.
+ * \effects
+ * All of the memory allocated for all of the entries in an entry
+ * list will be freed.
  *
  * \returns Nothing
  *
- * This function steps from head to tail through an entry list, freeing
- * each of the members of each entry, then the entry itself.
+ * This function uses recursion to step to the tail of the list and deletes
+ * section entries on the way back up.
  */
-void FreeEntryList(ini_entry_list_t **list)
+void FreeList(ini_entry_list_t list)
 {
-    ini_entry_list_t *here;
-    ini_entry_list_t *next;
-
-    if (NULL == *list)
+    /* recurse to the end of the list and free everything on the way back */
+    if (list->next != NULL)
     {
-        return;
+        FreeList(list->next);
     }
 
-    here = *list;
-
-    /* delete list head to tail */
-    do
+    if (list->section != NULL)
     {
-        next = here->next;
-        FreeEntry(&(here->entry));
-        free(here);
-        here = next;
-    } while (here != NULL);
+        /* free the section name */
+        free(list->section);
+    }
+
+    if (list->members != NULL)
+    {
+        FreeKeyList(list->members);
+    }
+
+    free(list);
 }
 
+
 /**
- * \fn int MakeINIFile(const char *iniFile, const ini_entry_list_t *list)
- * 
+ * \fn int MakeINIFile(const char *iniFile, const ini_entry_list_t list)
+ *
  * \brief This function creates the specified INI file from the list of
  * entries passed as an argument.
  *
- * \param iniFile The name of the INI file to be created.
+ * \param iniFile The name of the INI file to be created.  stdout will be
+ * used if iniFile is NULL.
  *
- * \param list A pointer to a sorted list of entries.
+ * \param list A pointer to a list of that will be used to construct
+ * (section, key, value) entries.
  *
- * \effects The specified file is created and the (section, key, value)
- * triples in the entry list are written to the file.  If the specified
- * file already exists, it will be overwritten.  If the entry list is not
- * sorted, multiple sections with the same name may be created.
+ * \effects
+ * The specified file is created and the (section, key, value)
+ * triples generated from the entry list are written to the file.  If the
+ * specified file already exists, it will be overwritten.
  *
  * \returns 0 for success, Non-zero on error.  Error type is contained in
  * errno.
- * 
+ *
  * This function creates the specified INI file from the list of entries
  * passed as an argument.  Any existing INI file with the same name in the
  * same path will be overwritten.
  */
-int MakeINIFile(const char *iniFile, const ini_entry_list_t *list)
+int MakeINIFile(const char *iniFile, const ini_entry_list_t list)
 {
-    char *section;
+    ini_entry_list_t section;
+    ini_key_list_t *members;
     FILE *fp;
-
-    if (NULL == iniFile)
-    {
-        errno = EINVAL;
-        return -1;
-    }
 
     if (NULL == list)
     {
@@ -264,61 +331,76 @@ int MakeINIFile(const char *iniFile, const ini_entry_list_t *list)
         return -1;
     }
 
-    fp = fopen(iniFile, "w");
-
-    if (NULL == fp)
+    if (NULL == iniFile)
     {
-        return -1;
+        fp = stdout;
+    }
+    else
+    {
+
+        fp = fopen(iniFile, "w");
+
+        if (NULL == fp)
+        {
+            return -1;
+        }
     }
 
-    section = list->entry.section;
-    fprintf(fp, "[%s]\n", section);
+    section = list;
 
-    while (NULL != list)
+    while (section != NULL)
     {
-        if (0 != strcmp(section, list->entry.section))
+        fprintf(fp, "[%s]\n", section->section);
+
+        members = section->members;
+
+        while (members != NULL)
         {
-            section = list->entry.section;
-            fprintf(fp, "\n[%s]\n", section);
+            fprintf(fp, "%s = %s\n", members->key, members->value);
+            members = members->next;
         }
 
-        fprintf(fp, "%s = %s\n", list->entry.key, list->entry.value);
-
-        list = list->next;
+        fprintf(fp, "\n");
+        section = section->next;
     }
 
-    fclose(fp);
+    if (fp != stdout)
+    {
+        fclose(fp);
+    }
+
     return 0;
 }
 
+
 /**
- * \fn int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
- * 
+ * \fn int AddEntryToFile(const char *iniFile, const ini_entry_list_t list)
+ *
  * \brief This function adds (section, key, value) entries in an entry list
  * to an INI file.
  *
  * \param iniFile The name of the INI file to be modified.
  *
- * \param list A pointer to a sorted list of entries to be add to the INI
- * file.
+ * \param list A pointer to a list of entries to be added to the INI file.
  *
- * \effects The INI file will be re-written containing the results of adding
+ * \effects
+ * The INI file will be re-written containing the results of adding
  * the entries in the entry list to the entries already contained in the INI
  * file.
  *
  * \returns 0 for success, Non-zero on error.  Error type is contained in
  * errno.
- * 
+ *
  * This function adds (section, key, value) entries in an entry list to an
- * INI file.  The entries will be inserted alphabetically by section name
- * then key.  If an entry containing the same section name and key already
- * exists, the new value will overwrite the old value.
+ * INI file.  Section order will be maintained with new sections added to the
+ * end of the INI file.  If an entry containing the same section name and key
+ * already exists, the new value will overwrite the old value.
  */
-int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
+int AddEntryToFile(const char *iniFile, const ini_entry_list_t list)
 {
     ini_entry_t entry;
-    ini_entry_list_t *merged;
-    const ini_entry_list_t *here;
+    ini_entry_list_t merged;
+    ini_entry_list_t here;
     int result;
     FILE *fp;
 
@@ -356,22 +438,24 @@ int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
 
     if (result < 0)
     {
-        FreeEntryList(&merged);
+        FreeList(merged);
         return -1;
     }
 
     /* add entries passed into this function to entries from INI file */
     here = list;
 
-    while (NULL != here)
+    while (here != NULL)
     {
-        result = AddEntryToList(&merged, here->entry.section, here->entry.key,
-            here->entry.value);
+        ini_key_list_t *members;
 
-        if (result != 0)
+        members = here->members;
+
+        while (members != NULL)
         {
-            FreeEntryList(&merged);
-            return -1;
+            AddEntryToList(&merged, here->section, members->key,
+                members->value);
+            members = members->next;
         }
 
         here = here->next;
@@ -379,7 +463,7 @@ int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
 
     /* re-write INI file from merged entry list */
     result = MakeINIFile(iniFile, merged);
-    FreeEntryList(&merged);
+    FreeList(merged);
 
     return result;
 }
@@ -387,7 +471,7 @@ int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
 /**
  * \fn int DeleteEntryFromFile(const char *iniFile, const char *section,
  * const char *key)
- * 
+ *
  * \brief This function deletes all entries from an INI file that match the
  * section and key passed as an argument.
  *
@@ -396,19 +480,20 @@ int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list)
  *
  * \param section A pointer to a NULL terminated string containing the name
  * of the section of the entry to be deleted.
- * 
+ *
  * \param key A pointer to a NULL terminated string containing the name of
  * the key of the entry to be deleted.
  *
- * \effects The INI file will be re-written without any entries that match
- * the section and key to be deleted.
+ * \effects
+ * The INI file will be re-written without any entries that match
+ * the section and key to be deleted.  Empty sections will not be deleted.
  *
  * \returns 0 for success, Non-zero on error.  Error type is contained in
  * errno.
- * 
+ *
  * This function deletes all entries from an INI file that match the section
- * and key passed as an argument.
- * 
+ * and key passed as an argument.  Empty sections will not be deleted.
+ *
  * \note There will never be more than one matching entry in INI files
  * created by this library.
  */
@@ -416,7 +501,7 @@ int DeleteEntryFromFile(const char *iniFile, const char *section,
     const char *key)
 {
     ini_entry_t entry;
-    ini_entry_list_t *list;
+    ini_entry_list_t list;
     int result;
     FILE *fp;
 
@@ -469,19 +554,19 @@ int DeleteEntryFromFile(const char *iniFile, const char *section,
 
     if (result < 0)
     {
-        FreeEntryList(&list);
+        FreeList(list);
         return -1;
     }
 
     result = MakeINIFile(iniFile, list);
-    FreeEntryList(&list);
+    FreeList(list);
 
     return result;
 }
 
 /**
  * \fn int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry)
- * 
+ *
  * \brief This function parses an INI file stream passed as an input,
  * searching for the next (section, key, value) triple.
  *
@@ -491,12 +576,13 @@ int DeleteEntryFromFile(const char *iniFile, const char *section,
  * \param entry A pointer to the entry structure used to store the discovered
  * (section, key, value) triple.
  *
- * \effects The specified file is read until it discovers an entry.
+ * \effects
+ * The specified file is read until it discovers an entry.
  *
  * \returns 1 when an entry is found\n
  *          0 when no more entries can be found\n
  *         -1 for an error.  Error type is contained in errno.
- * 
+ *
  * This function parses an INI file stream passed as an input, searching for
  * the next (section, key, value) triple.  The resulting triple will be used
  * to populate the entry structure passed as a parameter.
@@ -636,9 +722,161 @@ int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry)
     return 1;
 }
 
+
+/**
+ * \fn ini_key_list_t *NewKeyList(const char *key, const char *value)
+ *
+ * \brief This function allocates memory for a new ini_key_list_t type
+ * variable and populates it with the data passed as parameters
+ *
+ * \param key A pointer to a NULL terminated string containing the key name
+ *
+ * \param key A pointer to a NULL terminated string containing the value of
+ * this key.  Use ASCII strings to represent numbers.
+ *
+ * \effects
+ * Memory will be allocated for a new ini_key_list_t and copies
+ * of the key and value strings passed as a parameter.  key and value are
+ * copied into the appropriate fields and the next pointer is set to NULL.
+ *
+ * \returns A pointer to the ini_key_list_t item that was allocated.  The
+ * pointer will be NULL if an error occurs.
+ *
+ * This function allocates memory for a new ini_key_list_t and copies
+ * of the key and value strings passed as a parameter.  The next pointer
+ * will be set to NULL.
+ */
+static ini_key_list_t *NewKeyList(const char *key, const char *value)
+{
+    ini_key_list_t *item;
+
+    item = (ini_key_list_t *)malloc(sizeof(ini_key_list_t));
+
+    if (NULL == item)
+    {
+        return NULL;
+    }
+
+    /* allocation succeeded copy key and value */
+    item->next = NULL;
+
+    item->key = DupStr(key);
+
+    if (NULL == item->key)
+    {
+        free(item);
+        return NULL;
+    }
+
+    item->value = DupStr(value);
+
+    if (NULL == item->value)
+    {
+        free(item->key);
+        free(item);
+        return NULL;
+    }
+
+    return item;
+}
+
+
+/**
+ * \fn ini_section_list_t *NewSectionList(const char *section, const char *key,
+ *      const char *value)
+ *
+ * \brief This function allocates memory for a new ini_section_list_t type
+ * variable and populates it with the data passed as parameters
+ *
+ * \param section A pointer to a NULL terminated string containing the section
+ * name
+
+ * \param key A pointer to a NULL terminated string containing the key name
+ *
+ * \param key A pointer to a NULL terminated string containing the value of
+ * this key.  Use ASCII strings to represent numbers.
+ *
+ * \effects
+ * Memory will be allocated for a new ini_section_list_t and copies
+ * of the section, key, value strings passed as a parameter.  section is
+ * copied to the appropriate field and a new key list items is created fo
+ * the key and value strings.  The next pointer will be set to NULL.
+ *
+ * \returns A pointer to the ini_section_list_t item that was allocated.  The
+ * pointer will be NULL if an error occurs.
+ *
+ * This function allocates memory for a new ini_section_list_t and copies
+ * of the section, key, value strings passed as a parameter.  A ini_key_list_t
+ * is allocated for the key and value strings.  The next pointer is set to NULL.
+ */
+static ini_section_list_t *NewSectionList(const char *section, const char *key,
+    const char *value)
+{
+    ini_section_list_t *item;
+
+    item = (ini_section_list_t *)malloc(sizeof(ini_section_list_t));
+
+    if (NULL == item)
+    {
+        return NULL;
+    }
+
+    /* now populate item */
+    item->next = NULL;
+    item->section = DupStr(section);
+
+    if (NULL == item->section)
+    {
+        free(item);
+        return NULL;
+    }
+
+    /* start a member list with the current key and value */
+    item->members = NewKeyList(key, value);
+
+    if (NULL == item->members)
+    {
+        free(item->section);
+        free(item);
+        return NULL;
+    }
+
+    return item;
+}
+
+
+/**
+ * \fn void FreeKeyList(ini_key_list_t *list)
+ *
+ * \brief This function frees all of the members of a key list.
+ *
+ * \param list A pointer to the head of an ini_key_list_t
+ *
+ * \effects All of the memory allocated for all of the key/value pairs in
+ * a key list will be freed.
+ *
+ * \returns Nothing
+ *
+ * This function uses recursion to step to the tail of the list and deletes
+ * key/value entries on the way back up.
+ */
+static void FreeKeyList(ini_key_list_t *list)
+{
+    /* recurse to the end of the list and free everything on the way back */
+    if (list->next != NULL)
+    {
+        FreeKeyList(list->next);
+    }
+
+    free(list->key);
+    free(list->value);
+    free(list);
+}
+
+
 /**
  * \fn static void FreeEntry(ini_entry_t *entry)
- * 
+ *
  * \brief This function frees the allocated memory that is pointed to by the
  * members of an ini_entry_t structure.
  *
@@ -663,7 +901,7 @@ static void FreeEntry(ini_entry_t *entry)
 
 /**
  * \fn static char *SkipWS(const char *str)
- * 
+ *
  * \brief This function returns a pointer to the first non-space in the
  * string passed as a parameter.
  *
@@ -688,7 +926,7 @@ static char *SkipWS(const char *str)
 
 /**
  * \fn static char *DupStr(const char *src)
- * 
+ *
  * \brief This function returns a copy of the string passed as a parameter.
  *
  * \param str A pointer to the string being being copied.
@@ -723,7 +961,7 @@ static char *DupStr(const char *src)
 
 /**
  * \fn static char *GetLine(FILE *fp)
- * 
+ *
  * \brief This function returns a NULL terminated array of char containing the
  * next line in the file passed as an argument.
  *
@@ -788,112 +1026,6 @@ static char *GetLine(FILE *fp)
     }
 
     return line;
-}
-
-/**
- * \fn static int CompairEntry(const void *p1, const void *p2)
- * 
- * \brief This function compares the entries pointed to by the void pointers
- * p1 and p2.
- *
- * \param p1 A pointer to the first entry
- *
- * \param p2 A pointer to the second entry
- *
- * \effects None
- *
- * \returns An integer less than, equal to, or greater than zero if p1 is
- * found, respectively, to be less than, to match, or be greater than p2.
- *
- * This function compares the entries pointed to by the void pointers p1 and
- * p2 and returns an integer less than, equal to, or greater than zero if p1
- * is less than, equal to or greater than p2.
- *
- * \note Entries are compared by section, if the sections are equal, their
- * keys are compared.  Their values are never compared.
- */
-static int CompairEntry(const void *p1, const void *p2)
-{
-    char *s1;
-    char *s2;
-    int result;
-
-    s1 = ((ini_entry_t *)p1)->section;
-    s2 = ((ini_entry_t *)p2)->section;
-    result = strcmp(s1, s2);
-
-    if (0 != result)
-    {
-        return result;
-    }
-
-    s1 = ((ini_entry_t *)p1)->key;
-    s2 = ((ini_entry_t *)p2)->key;
-    result = strcmp(s1, s2);
-    return result;
-}
-
-/**
- * \fn static int PopulateEntry(ini_entry_t *entry, const char *section,
- *      const char *key, const char *value)
- * 
- * \brief This function populates the fields of an ini_entry_t structure with
- * dynamically allocated copies of the section, key, and value that are passed
- * as parameters
- *
- * \param entry A pointer to the ini_entry_t structure being populated
- *
- * \param section A pointer to a NULL terminated string containing the section
- * name for this entry
- *
- * \param key A pointer to a NULL terminated string containing the key
- * name for this entry
- *
- * \param value A pointer to a NULL terminated string containing the value
- * for this entry
- *
- * \effects None
- *
- * \returns 0 for success, and non-zero for failure
- *
- * This function populates the fields of an ini_entry_t structure with
- * dynamically allocated copies of the section, key, and value that are passed
- * as parameters.  The resulting structure should be freed using
- * FreeEntry().
- */
-static int PopulateEntry(ini_entry_t *entry, const char *section,
-    const char *key, const char *value)
-{
-    if (NULL == entry)
-    {
-        return -1;
-    }
-
-    entry->section = DupStr(section);
-
-    if (NULL == entry->section)
-    {
-        return -1;
-    }
-
-    entry->key = DupStr(key);
-
-    if (NULL == entry->key)
-    {
-        free(entry->section);
-        return -1;
-    }
-
-    entry->value = DupStr(value);
-
-    if (NULL == entry->value)
-    {
-        free(entry->section);
-        free(entry->key);
-        return -1;
-    }
-
-    return 0;
 }
 
 /**@}*/

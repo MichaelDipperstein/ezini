@@ -2,19 +2,20 @@
  * \brief Sample program demonstrating the usage of the ezini INI file
  * handling library
  * \file sample.c
- * \author Michael Dipperstein (mdipper@alumni.cs.ucsb.edu)
+ * \author Michael Dipperstein (mdipperstein@gmail.com)
  * \date November 22, 2015
  *
  * This file implements a set of library functions that maybe be used
  * to create, update, and/or parse INI files.
  *
- * \copyright Copyright (C) 2015 by Michael Dipperstein
- * (mdipper@alumni.cs.ucsb.edu)
+ * \copyright Copyright (C) 2015, 2019 by Michael Dipperstein
+ * (mdipperstein@gmail.com)
  *
  * \par
  * This file is part of the ezini library.
  *
- * \license The ezini library is free software; you can redistribute it
+ * \license
+ * The ezini library is free software; you can redistribute it
  * and/or modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either version 3
  * of the License, or (at your option) any later version.
@@ -52,7 +53,7 @@
 
 /**
  * \struct my_struct_t
- * \brief A structure containing the section, key, and value of INI.
+ * \brief A structure containing the section, key, and value of an INI
  * file entry
  */
 
@@ -79,14 +80,15 @@ static int PopulateMyStruct(my_struct_t *my_struct, const ini_entry_t *entry);
 
 /**
  * \fn int main(int argc, char *argv[])
- * 
+ *
  * \brief This creates test_struct.ini and calls GetEntryFromFile to read it.
  *
  * \param argc Not Used
  *
  * \param argv Not Used
  *
- * \effects test_struct.ini is created and it's enteries are used to populate
+ * \effects
+ * test_struct.ini is created and it's enteries are used to populate
  * my_struct_t, a two element array of my_struct_t.  Its contents are printed
  * and test_struct.ini is deleted.
  *
@@ -104,7 +106,7 @@ int main(int argc, char *argv[])
     FILE *fp;
 
     ini_entry_t entry;
-    ini_entry_list_t *list;
+    ini_entry_list_t list;
 
     ((void)(argc));
     ((void)(argv));
@@ -127,7 +129,7 @@ int main(int argc, char *argv[])
         printf("Error making test_struct.ini file\n");
     }
 
-    FreeEntryList(&list);
+    FreeList(list);
 
     printf("\nReading test_struct.ini\n");
     printf("=======================\n");
@@ -210,7 +212,7 @@ int main(int argc, char *argv[])
 /**
  * \fn static int PopulateMyStruct(my_struct_t *my_struct,
  *      const ini_entry_t *entry)
- * 
+ *
  * \brief This function stores section, key, value entries into an array of
  * my_struct_t.
  *
@@ -219,7 +221,8 @@ int main(int argc, char *argv[])
  *
  * \param entry The section, key, value strings discovered by GetEntry.
  *
- * \effects The (section, key, value) strings are used to fill the my_struct_t
+ * \effects
+ * The (section, key, value) strings are used to fill the my_struct_t
  * type array passed as my_struct.
  *
  * \returns 0 on success and non-zero on failure.

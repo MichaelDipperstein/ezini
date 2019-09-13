@@ -1,6 +1,6 @@
 <map id="GetEntryFromFile" name="GetEntryFromFile">
-<area shape="rect" id="node2" href="$group__library.html#ga76c6bb3e52345c5af33da3009176f189" title="This function adds (section, key, value) entries in an entry list to an INI file. ..." alt="" coords="194,5,306,32"/>
-<area shape="rect" id="node3" href="$group__library.html#gaa68ff5fcb6937681d8ae4f5000cf8eb6" title="This function deletes all entries from an INI file that match the section and key passed as an argume..." alt="" coords="179,56,321,83"/>
-<area shape="rect" id="node4" href="$group__examples.html#ga0ddf1224851353fc92bfbff6f499fa97" title="This creates test_struct.ini and calls GetEntryFromFile to read it. " alt="" coords="225,107,275,133"/>
-<area shape="rect" id="node5" href="$group__tests.html#gace97f3b9f94d14f9e8072314c6aee84a" title="This function calls GetEntryFromFile() to read the test_strs.ini file and prints the entries as they ..." alt="" coords="203,157,297,184"/>
+<area shape="rect" id="node2" href="$group__library.html#ga6f5b86de7f612aeb20935685c5975e7e" title="This function adds (section, key, value) entries in an entry list to an INI file. ..." alt="" coords="205,5,322,32"/>
+<area shape="rect" id="node3" href="$group__library.html#gaa68ff5fcb6937681d8ae4f5000cf8eb6" title="This function deletes all entries from an INI file that match the section and key passed as an argume..." alt="" coords="187,56,340,83"/>
+<area shape="rect" id="node4" href="$group__examples.html#ga0ddf1224851353fc92bfbff6f499fa97" title="This creates test_struct.ini and calls GetEntryFromFile to read it. " alt="" coords="236,107,291,133"/>
+<area shape="rect" id="node5" href="$group__tests.html#gace97f3b9f94d14f9e8072314c6aee84a" title="This function calls GetEntryFromFile() to read the test_strs.ini file and prints the entries as they ..." alt="" coords="211,157,315,184"/>
 </map>

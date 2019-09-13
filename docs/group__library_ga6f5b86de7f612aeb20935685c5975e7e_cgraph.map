@@ -1,0 +1,6 @@
+<map id="AddEntryToFile" name="AddEntryToFile">
+<area shape="rect" id="node2" href="$group__library.html#ga95a7973ed514a118542f01471da4dfc8" title="This function parses an INI file stream passed as an input, searching for the next (section..." alt="" coords="171,5,304,32"/>
+<area shape="rect" id="node3" href="$group__library.html#ga41a4de84ddf614cc24622c9fad75840f" title="This function adds a (section, key, value) entry to an entry list. " alt="" coords="178,56,297,83"/>
+<area shape="rect" id="node4" href="$group__library.html#gaa99002ef0485e65626f8a482b13461bb" title="This function frees all of the members of an entry list. " alt="" coords="201,131,273,157"/>
+<area shape="rect" id="node5" href="$group__library.html#ga156383a5cb6c4322bdc21169621932a8" title="This function creates the specified INI file from the list of entries passed as an argument..." alt="" coords="189,181,286,208"/>
+</map>

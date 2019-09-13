@@ -1,14 +1,14 @@
 /**
  * \brief INI File handling library header
  * \file ezini.h
- * \author Michael Dipperstein (mdipper@alumni.cs.ucsb.edu)
+ * \author Michael Dipperstein (mdipperstein@gmail.com)
  * \date November 22, 2015
  *
  * This file implements a set of library functions that maybe be used
  * to create, update, and/or parse INI files.
  *
- * \copyright Copyright (C) 2015 by Michael Dipperstein
- * (mdipper@alumni.cs.ucsb.edu)
+ * \copyright Copyright (C) 2015, 2019 by Michael Dipperstein
+ * (mdipperstein@gmail.com)
  *
  * \par
  * This file is part of the ezini library.
@@ -29,18 +29,19 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef EZINI_H
-#define EZINI_H
+#ifndef __EZINI_H
+#define __EZINI_H
 
 /**
  * \mainpage EZIni - INI File handling library
  *
  * These pages provide documentation for EZIni, an INI File handling library.
  *
- * \copyright Copyright (C) 2015 by Michael Dipperstein
- * (mdipper@alumni.cs.ucsb.edu)
+ * \copyright Copyright (C) 2015, 2019 by Michael Dipperstein
+ * (mdipperstein@gmail.com)
  *
- * \license The ezini library is free software; you can redistribute it
+ * \license
+ * The ezini library is free software; you can redistribute it
  * and/or modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either version 3
  * of the License, or (at your option) any later version.
@@ -57,6 +58,10 @@
  *
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /***************************************************************************
 *                            TYPE DEFINITIONS
 ***************************************************************************/
@@ -68,45 +73,34 @@
  */
 typedef struct
 {
-    char *section;      /*!< pointer to a NULL terminated string with the
+    char *section;      /*!< pointer to a NULL terminated string containing the
                             section name */
-    char *key;          /*!< pointer to a a NULL terminated string with entry
-                            key name */
-    char *value;        /*!< pointer to a NULL terminated string with entry value.
-                            Use ASCII strings to represent numbers */
+    char *key;          /*!< pointer to a a NULL terminated string containing
+                            the key name */
+    char *value;        /*!< pointer to a NULL terminated string with entry
+                            value.  Use ASCII strings to represent numbers */
 } ini_entry_t;
 
 /**
- * \struct ini_entry_list_t
- * \brief A structure for sorted lists of entries.
+ * \typedef ini_entry_list_t
+ * \brief A shortcut for forward referenced struct ini_section_list_t*
  */
-typedef struct ini_entry_list_t
-{
-    ini_entry_t entry;              /*!< An INI entry structure
-                                        (not a pointer) */
-    struct ini_entry_list_t *next;  /*!< A pointer to the next entry in
-                                        the list */
-} ini_entry_list_t;
-
-/**
- * \typedef struct ini_entry_list_t
- * \brief A shortcut for struct ini_entry_list_t
- */
+typedef struct ini_section_list_t* ini_entry_list_t;
 
 /***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
 
-/* add entry to a sorted entry list */
-int AddEntryToList(ini_entry_list_t **list, const char *section,
+/* add (section, key, value) to a list of INI entries */
+int AddEntryToList(ini_entry_list_t *list, const char *section,
     const char *key, const char *value);
 
-/* frees all of the entries in an entry list */
-void FreeEntryList(ini_entry_list_t **list);
+/* free all of the entries in an entry list */
+void FreeList(ini_entry_list_t list);
 
 /* create/add entries to an INI file from a sorted entry list */
-int MakeINIFile(const char *iniFile, const ini_entry_list_t *list);
-int AddEntryToFile(const char *iniFile, const ini_entry_list_t *list);
+int MakeINIFile(const char *iniFile, const ini_entry_list_t list);
+int AddEntryToFile(const char *iniFile, const ini_entry_list_t list);
 
 /* remove a single entry from an INI file */
 int DeleteEntryFromFile(const char *iniFile, const char *section,
@@ -120,4 +114,8 @@ int DeleteEntryFromFile(const char *iniFile, const char *section,
 ***************************************************************************/
 int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry);
 
-#endif  /* ndef EZINI_H */
+#ifdef __cplusplus
+}
+#endif
+
+#endif  /* ndef __EZINI_H */
