@@ -53,6 +53,7 @@ HISTORY
          - Passing NULL pointer to MakeINIFile will print to stdout
          - Updated e-mail address
          - Fixed doxygen errors
+01/30/21 - Fixed memory leak identified by Rob Smith <rob@smithoffice.net>
 
 TODO
 ----

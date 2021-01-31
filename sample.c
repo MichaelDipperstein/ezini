@@ -66,7 +66,7 @@ typedef struct my_struct_t
 {
     int     myInt;          /*!< An integer value */
     float   myFloat;        /*!< An floating point value */
-    char    myString[10];   /*!< A NULL terminated string */
+    char    myString[11];   /*!< A NULL terminated string */
 } my_struct_t;
 
 /***************************************************************************

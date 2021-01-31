@@ -660,6 +660,7 @@ int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry)
     }
 
     /* the only other allowable lines are of the form key = value */
+    free(entry->key);       /* free old key */
     entry->key = ptr;
     ptr++;
 
@@ -679,6 +680,7 @@ int GetEntryFromFile(FILE *iniFile, ini_entry_t *entry)
     }
 
     /* we found the '=' separating key and value trim white space */
+    free(entry->value);     /* free old value */
     entry->value = ptr + 1;
     ptr--;
 
